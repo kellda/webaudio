@@ -24,10 +24,9 @@ window.addEventListener('error', function (event) {
 	};
 	
 	let audioctx = new AudioContext();
-	let domctx = document.getElementById('context');
-	let linksctx = document.getElementById('links');
+	let container = document.getElementById('container');
 	
-	let nextpos = { x: domctx.firstElementChild.offsetWidth + 10, y: 0 };
+	let nextpos = { x: container.children[1].offsetWidth + 10, y: 0 };
 	
 	document.getElementById('menu').addEventListener('click', function create(event) {
 		console.log(event);
@@ -62,56 +61,68 @@ window.addEventListener('error', function (event) {
 		}
 		
 		box.innerHTML = html.join('');
-		box.style.left = nextpos.x + 'px';
-		box.style.top = nextpos.y + 'px';
-		domctx.appendChild(box);
+		box.style.marginLeft = nextpos.x + 'px';
+		box.style.marginTop = nextpos.y + 'px';
+		container.appendChild(box);
 		nextpos.x += box.offsetWidth + 10;
-		if (nextpos.x > domctx.clientWidth) {
+		if (nextpos.x > container.clientWidth) {
 			nextpos.x = 0;
 			nextpos.y += 150;
-			if (nextpos.y + 100 > domctx.clientHeight) {
+			if (nextpos.y + 100 > container.clientHeight) {
 				nextpos.y = 0;
 			}
-			box.style.left = '0px';
-			box.style.top = nextpos.y + 'px';
+			box.style.marginLeft = '0px';
+			box.style.marginTop = nextpos.y + 'px';
 			nextpos.x += box.offsetWidth + 10;
 		}
 		audio.start();
 	});
 	
-	domctx.addEventListener('input', console.log);
-	domctx.addEventListener('change', console.log);
+	container.addEventListener('input', console.log);
+	container.addEventListener('change', console.log);
 	
-	domctx.addEventListener('click', function click(event) {
+	container.addEventListener('click', function click(event) {
 		console.log(event);
 	});
 	
 	let dragdata = null, condata = null;
 	const svgns = 'http://www.w3.org/2000/svg';
 	
+	function path(x1, y1, x2, y2) {
+		return `M${x1},${y1} C${(x1 + x2) / 2},${y1} ${(x1 + x2) / 2},${y2} ${x2},${y2}`;//
+		//return `M${x1},${y1} C${x1},${Math.min(y1,y2) - 50} ${x2},${Math.min(y1,y2) - 50} ${x2},${y2}`;
+	}
+	
 	function drag(event) {
-		dragdata.elt.style.left = dragdata.x + event.clientX + window.scrollX + 'px';
-		dragdata.elt.style.top = dragdata.y + event.clientY + window.scrollY + 'px';
+		dragdata.elt.style.marginLeft = dragdata.x + event.clientX + window.scrollX + 'px';
+		dragdata.elt.style.marginTop = dragdata.y + event.clientY + window.scrollY + 'px';
 	}
 	
 	function connect(event) {
-		condata.path.setAttribute('d', `M${condata.startx},${condata.starty} ${event.clientX + window.scrollX},${event.clientY + window.scrollY}`);
+		condata.path.setAttribute('d', path(
+			condata.startx,
+			condata.starty,
+			event.clientX + window.scrollX - container.offsetLeft,
+			event.clientY + window.scrollY - container.offsetTop,
+		));
 	}
 	
-	domctx.addEventListener('mousedown', function mousedown(event) {
+	container.addEventListener('mousedown', function mousedown(event) {
 		let elt = event.target;
 		let tag = elt.nodeName.toLowerCase();
-		if (elt == domctx || tag == 'input' || tag == 'select') return;
+		if (elt == container || tag == 'input' || tag == 'select') return;
+		event.preventDefault();
 		
-		if (tag == 'img') {
+		if (tag == 'path') {
+			console.log(event);
+		} else if (tag == 'img') {
 			let path = document.createElementNS(svgns, 'path');
-			linksctx.appendChild(path);
-			let rect = elt.getBoundingClientRect();
+			container.firstElementChild.appendChild(path);
 			condata = {
 				from: elt,
 				path: path,
-				startx: (rect.left + rect.right) / 2,
-				starty: (rect.top + rect.bottom) / 2,
+				startx: elt.offsetLeft + elt.offsetWidth / 2,
+				starty: elt.offsetTop + elt.offsetHeight / 2,
 			};
 			console.log(condata);
 			document.addEventListener('mousemove', connect);
@@ -124,7 +135,6 @@ window.addEventListener('error', function (event) {
 			};
 			document.addEventListener('mousemove', drag);
 		}
-		event.preventDefault();
 	});
 	
 	document.addEventListener('mouseup', function mouseup(event) {

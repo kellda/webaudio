@@ -1,11 +1,6 @@
-html, body, #context, #links {
-	height: 100%;
-	width: 100%;
-	margin: 0;
-}
-
 body {
 	font-family: sans-serif;
+	margin: 0;
 }
 
 input {
@@ -17,58 +12,58 @@ img {
 }
 
 #menu {
-	position: fixed;
-	top: 0;
-	width: 100%;
+	position: sticky;
 	border-bottom: 1px solid black;
 	padding: 8px;
 	background: #fff;
 }
 
-#context {
-	position: absolute;
-	box-sizing: border-box;
-	border: solid transparent;
-	border-width: 3em 8px 8px 8px;
+#container {
+	display: grid;
+	position: relative;
+	margin: 8px
 }
 
-#context fieldset {
-	display: inline-block;
-	position: absolute;
+#container > fieldset {
+	grid-area: 1/1;
 	width: max-content;
+	height: max-content;
 	background: #fff;
 }
 
-#context div {
+#container div {
 	clear: both;
 	min-height: 1.5ex;
 }
 
-#context div:first-of-type	 {
+#container div:first-of-type {
 	font-weight: bold;
 	text-align: center;
 }
 
-#context span, #context label {
+#container span, #container label {
 	margin-left: 1.5ex;
 }
 
-#context img:not(:first-child), label input, label select {
+#container img:not(:first-child), label input, label select {
 	float: right;
 	margin-left: 1ex;
 }
 
-#context img:first-child {
+#container img:first-child {
 	position: absolute;
 	margin: 0 1ex 0 -1ex;
 }
 
-#links {
-	position: absolute;
+#container > svg {
+	grid-area: 1/1;
+	height: 100%;
+	width: 100%;
+	z-index: 1;
 	pointer-events: none;
 }
 
-#links * {
+#container > svg * {
 	pointer-events: auto;
 	fill: none;
 	stroke: #000;
