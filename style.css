@@ -8,7 +8,7 @@ input {
 }
 
 img {
-	height: 1em;
+	width: 2ex;
 }
 
 #menu {
@@ -16,6 +16,7 @@ img {
 	border-bottom: 1px solid black;
 	padding: 8px;
 	background: #fff;
+	z-index: 1;
 }
 
 #container {
@@ -41,8 +42,8 @@ img {
 	text-align: center;
 }
 
-#container span, #container label {
-	margin-left: 1.5ex;
+#container span:first-child, #container label:first-child {
+	margin-left: 3ex;
 }
 
 #container img:not(:first-child), label input, label select {
@@ -51,8 +52,8 @@ img {
 }
 
 #container img:first-child {
-	position: absolute;
-	margin: 0 1ex 0 -1ex;
+	float: left;
+	margin-right: 1ex;
 }
 
 #container > svg {
@@ -64,9 +65,14 @@ img {
 }
 
 #container > svg * {
-	pointer-events: auto;
 	fill: none;
 	stroke: #000;
+	stroke-width: 2;
+	stroke-linecap: round;
+}
+
+#container:not(.connect) > svg * {
+	pointer-events: auto;
 }
 
 #log > p {

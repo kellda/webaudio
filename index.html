@@ -3,12 +3,32 @@
 	<head>
 		<title>Web audio API</title>
 		<meta charset="UTF-8" />
+		<script>
+window.addEventListener('error', function (event) {
+	let msg = document.createElement('p');
+	console.log(event);
+	msg.textContent = event.message;
+	document.getElementById('log').appendChild(msg);
+});		</script>
 		<link rel="stylesheet" href="style.css" />
 	</head>
 	<body>
 		<div id="menu">
 			Create
+			<button data-type="cst">Constant Source</button>
 			<button data-type="osc">Oscillator</button>
+			<button data-type="buffer" disabled>Audio Buffer Source</button>
+			<button data-type="gain">Gain</button>
+			<button data-type="delay">Delay</button>
+			<button data-type="stereo">Stereo Panner</button>
+			<button data-type="panner">Panner</button>
+			<button data-type="biquad">Biquad Filter</button>
+			<button data-type="iif" disabled>IIF Filter</button>
+			<button data-type="compr">Dynamics Compressor</button>
+			<button data-type="shaper" disabled>Wave Shaper</button>
+			<button data-type="merger" disabled>Channel Merger</button>
+			<button data-type="split" disabled>Channel Splitter</button>
+			<button data-type="analy" disabled>Analyser</button>
 		</div>
 		<div id="container">
 			<svg></svg>
