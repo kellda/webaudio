@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<svg xmlns="http://www.w3.org/2000/svg" height="10" width="10">
+	<style>
+svg > * { display: none; }
+:target { display: inline; }
+	</style>
+	<circle id="circle" r="4" cx="5" cy="5" stroke="#000" fill="none"/>
+	<path id="settings" d="M4,1 6,1 6,2A3,3 0,0,1 7.098,2.634L7.964,2.134 8.964,3.866 8.098,4.366A3,3 0,0,1 8.098,5.634L8.964,6.134 7.964,7.866 7.098,7.366A3,3 0,0,1 6,8L6,9 4,9 4,8A3,3 0,0,1 2.902,7.366L2.036,7.866 1.036,6.134 1.902,5.634A3,3 0,0,1 1.902,4.366L1.036,3.866 2.036,2.134 2.902,2.634A3,3 0,0,1 4,2ZM5,4A1,1 0,1,1 5,6 1,1 0,1,1 5,4" stroke="#000" fill="none"/>
+</svg>

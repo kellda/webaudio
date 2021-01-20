@@ -1,0 +1,79 @@
+html, body, #context, #links {
+	height: 100%;
+	width: 100%;
+	margin: 0;
+}
+
+body {
+	font-family: sans-serif;
+}
+
+input {
+	width: 7em;
+}
+
+img {
+	height: 1em;
+}
+
+#menu {
+	position: fixed;
+	top: 0;
+	width: 100%;
+	border-bottom: 1px solid black;
+	padding: 8px;
+	background: #fff;
+}
+
+#context {
+	position: absolute;
+	box-sizing: border-box;
+	border: solid transparent;
+	border-width: 3em 8px 8px 8px;
+}
+
+#context fieldset {
+	display: inline-block;
+	position: absolute;
+	width: max-content;
+	background: #fff;
+}
+
+#context div {
+	clear: both;
+	min-height: 1.5ex;
+}
+
+#context div:first-of-type	 {
+	font-weight: bold;
+	text-align: center;
+}
+
+#context span, #context label {
+	margin-left: 1.5ex;
+}
+
+#context img:not(:first-child), label input, label select {
+	float: right;
+	margin-left: 1ex;
+}
+
+#context img:first-child {
+	position: absolute;
+	margin: 0 1ex 0 -1ex;
+}
+
+#links {
+	position: absolute;
+	pointer-events: none;
+}
+
+#links * {
+	pointer-events: auto;
+	fill: none;
+	stroke: #000;
+}
+
+#log > p {
+	color: #f00;
+}
