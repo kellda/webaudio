@@ -1,4 +1,11 @@
 const nodes = {
+	dest: {
+		name: 'Destination',
+		inputs: 1,
+		outputs: 0,
+		todo: { settings: ['forward', 'position', 'up'] },
+		create: ctx => ctx.listener,
+	},
 	cst: {
 		name: 'ConstantSource',
 		inputs: 0,
@@ -134,7 +141,6 @@ const nodes = {
 			distanceModel: ['linear', ['inverse', 'selected'], 'exponential'],
 			panningModel: ['equalpower', 'HRTF'],
 		},
-		todo: { orDestination: AudioListener },
 	},
 	biquad: {
 		name: 'BiquadFilter',
@@ -168,6 +174,7 @@ const nodes = {
 			],
 			apply: (elt, node, settings) => [settings[0].split(','), settings[1].split(',')],
 		},
+		create: (ctx) => ctx.createIIRFilter([1], [1]),
 	},
 	compr: {
 		name: 'DynamicsCompressor',
