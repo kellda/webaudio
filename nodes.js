@@ -61,29 +61,83 @@ const nodes = {
 		booleanparams: {
 			loop: false,
 		},
-		settings: {},
-		todo: { buffer: AudioBuffer }
+		settings: {
+			elements: [
+				{ label: 'Audio Buffer', type: 'buffer' },
+			],
+			apply: (elt, node, settings) => {
+				let img = elt.children[1].firstElementChild;
+				switch (settings[0].type) {
+				case 'none':
+						img.src = img.src.replace(/#.*$/, '#none');
+						img.dataset.type = 'settings';
+						node.buffer = null;
+						return;
+				case 'loading':
+						img.src = img.src.replace(/#.*$/, '#loading');
+						img.dataset.type = '';
+						node.buffer = null;
+						return;
+				case 'loaded':
+						img.src = img.src.replace(/#.*$/, '#play');
+						img.dataset.type = 'start';
+						return [];
+				case 'new':
+						return;
+				}
+			},
+			reload: (oldnode, newnode, settings) => newnode.buffer = settings[0].buffer,
+		},
 	},
-	//media: {
-	//	name: 'MediaElementSource',
-	//	inputs: 0,
-	//	outputs: 1,
-	//	todo: { mediaElement: HTMLMediaElement },
-	//},
-	//stream: {
-	//	name: 'MediaStreamSource',
-	//	inputs: 0,
-	//	outputs: 1,
-	//	todo: { mediaStream: MediaStream },
-	//},
-	//track: {
-	//	name: 'MediaStreamTrackSource',
-	//	todo: { track: MediaStreamTrack },
-	//},
-	//strdest: {
-	//	name: 'MediaStreamDestination',
-	//	todo: { stream: MediaStream },
-	//},
+	buffer_raw: {
+		settings: {
+			elements: [
+				{ label: 'Name', type: 'text' },
+				{ label: 'Raw data (one line per channel)', type: 'textarea'},
+				{ label: 'Sample rate', type: 'number' },
+			],
+			make: (ctx, settings) => {
+				let channels = settings[1].split('\n');
+				let buffer = ctx.createBuffer(
+					channels.length,
+					channels[0].split(',').length,
+					settings[2],
+				);
+				for (let i in channels)
+					buffer.copyToChannel(new Float32Array(channels[i].split(',')), i);
+				return Promise.resolve(buffer);
+			},
+		},
+	},
+	buffer_file: {
+		settings: {
+			elements: [
+				{ label: 'Name', type: 'text' },
+				{ label: 'File', type: 'file'},
+			],
+			make: (ctx, settings) => settings[1].arrayBuffer().then(buffer => ctx.decodeAudioData(buffer)),
+		},
+	},
+	media: {
+		name: 'MediaElementSource',
+		inputs: 0,
+		outputs: 1,
+		todo: { mediaElement: HTMLMediaElement },
+	},
+	stream: {
+		name: 'MediaStreamSource',
+		inputs: 0,
+		outputs: 1,
+		todo: { mediaStream: MediaStream },
+	},
+	track: {
+		name: 'MediaStreamTrackSource',
+		todo: { track: MediaStreamTrack },
+	},
+	strdest: {
+		name: 'MediaStreamDestination',
+		todo: { stream: MediaStream },
+	},
 	gain: {
 		name: 'Gain',
 		inputs: 1,
@@ -196,7 +250,14 @@ const nodes = {
 		booleanparams: {
 			normalize: true,
 		},
-		todo: { buffer: AudioBuffer },
+		settings: {
+			elements: [
+				{ label: 'Audio Buffer', type: 'buffer' },
+			],
+			apply: (elt, node, settings) => {
+				if (settings[0].type != 'new') node.buffer = settings[0].buffer;
+			},
+		},
 	},
 	shaper: {
 		name: 'WaveShaper',

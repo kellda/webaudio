@@ -1,14 +1,30 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <svg xmlns="http://www.w3.org/2000/svg" height="10" width="10">
 	<style>
-svg > * { display: none; }
-:target { display: inline; }
+svg > :not(:target) { display: none; }
+#loading div {
+  width: 100%;
+  height: 100%;
+  background: conic-gradient(#0000, #000f);
+}
 	</style>
-	<circle id="circle" r="4" cx="5" cy="5" stroke="#000" fill="none"/>
+	<circle id="circle" r="4" cx="5" cy="5" stroke="#000" fill="none" />
+	<polygon id="none" points="1,1 9,5, 1,9" fill="#aaa" />
 	<polygon id="play" points="1,1 9,5, 1,9" />
 	<rect id="stop" x="1" y="1" width="8" height="8" />
 	<path id="pause" d="M1,1 H4V9H1Z M6,1 H9V9H6Z" />
 	<path id="settings" d="M4,1 6,1 6,2A3,3 0,0,1 7.098,2.634L7.964,2.134 8.964,3.866 8.098,4.366A3,3 0,0,1 8.098,5.634L8.964,6.134 7.964,7.866 7.098,7.366A3,3 0,0,1 6,8L6,9 4,9 4,8A3,3 0,0,1 2.902,7.366L2.036,7.866 1.036,6.134 1.902,5.634A3,3 0,0,1 1.902,4.366L1.036,3.866 2.036,2.134 2.902,2.634A3,3 0,0,1 4,2ZM5,4A1,1 0,1,1 5,6 1,1 0,1,1 5,4" stroke="#000" fill="none"/>
 	<path id="delete" d="M1,1 9,9 M1,9 9,1" stroke="#f00" fill="none" />
 	<path id="close" d="M1,1 9,9 M1,9 9,1" stroke="#555" fill="none" />
+	<path id="copy" d="M2,7 V1H6 M4,3 H8V9H4Z" stroke="#000" fill="none" />
+	<path id="edit" d="M7,1 9,3 8,4 6,2Z M5,3 7,5 3,9 1,9 1,7" />
+	<g id ="loading">
+		<clipPath id="loadclip">
+			<path d="M5,0.5 A4.5,4.5 0,0,1 5,9.5 A4.5,4.5 0,0,1 5,0.5 M5,1.5 A3.5,3.5 0,0,0 5,8.5 A3.5,3.5 0,0,0 5,1.5" />
+		</clipPath>
+		<foreignObject width="10" height="10" clip-path="url(#loadclip)">
+			<div xmlns="http://www.w3.org/1999/xhtml"/>
+		</foreignObject>
+		<animateTransform attributeName="transform" attributeType="XML" type="rotate" from="0,5,5" to="360,5,5" begin="0s" dur="1s" repeatCount="indefinite" />
+	</g>
 </svg>

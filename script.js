@@ -4,34 +4,179 @@
 let audioctx = new (AudioContext || webkitAudioContext)();
 let container = document.getElementById('container');
 let dialog = document.getElementById('dialog');
-let eltdata = new WeakMap(), nextpos = { x: 0, y: 0 };
-let movedata, dialogelt;
+let eltdata = new WeakMap(), nextpos = { x: 0, y: 0 }, buffers = [];
+let movedata, dialogdata;
 
 /* Settings modal dialog **************************************************************************/
-dialog.firstElementChild.addEventListener('submit', function settings_apply(event) {
-	event.preventDefault();
-	let data = eltdata.get(dialogelt);
-	let elements = data.desc.settings.elements;
-	let labels = dialog.firstElementChild.children;
+
+function dialog_make(name, elements, settings) {
+	let html = ['<div>', name, '<img src="icons.svg#close" data-type="close" /></div>'];
 	for (let i in elements) {
+		html.push('<label>', elements[i].label, ': ');
 		switch (elements[i].type) {
+		case 'buffer':
+			html.push('<select><option value="null">(none)</option>');
+			for (let b in buffers)
+				html.push('<option value="', b, '"',
+					settings[i] == buffers[b] ? ' selected' : '',
+					'>', buffers[b].name, '</option>');
+			html.push('<option value="raw">From raw data</option>',
+				'<option value="file">From file</option></select>');
+			break;
+		case 'textarea':
+			html.push('<textarea>', settings[i], '</textarea>');
+			break;
 		case 'checkbox':
-			data.settings[i] = labels[+i+1].lastElementChild.checked;
+			html.push('<input type="checkbox"', settings[i] ? ' checked' : '', ' />');
+			break;
+		case 'number':
+			html.push('<input type="number" step="any" min="', elements[i].min,
+				'" max="', elements[i].max, '" value="', settings[i], '" required >');
 			break;
 		default:
-			data.settings[i] = labels[+i+1].lastElementChild.value;
+			html.push('<input type="', elements[i].type, '" value="', settings[i], '" required />');
+			break;
+		}
+		html.push('</label>');
+	}
+	html.push('<div><input type="submit" value="Apply"/>',
+		'<input type="button" value="Cancel" data-type="close" /></div>');
+	dialog.firstElementChild.innerHTML = html.join('');
+	dialog.style.display = 'flex';
+}
+
+dialog.firstElementChild.addEventListener('submit', function dialog_submit(event) {
+	event.preventDefault();
+	let elements = dialogdata.data.desc.settings.elements;
+	let settings = dialogdata.data.settings;
+	let labels = dialog.firstElementChild.children;
+	let nextdialog = null;
+	for (let i in elements) {
+		switch (elements[i].type) {
+		case 'buffer':
+			if (settings[i] && settings[i].used)
+				settings[i].used.delete(dialogdata.elt);
+			let value = labels[+i+1].lastElementChild.value;
+			switch (value) {
+			case 'raw':
+			case 'file':
+				let desc = nodes['buffer_' + value];
+				dialog_make('New Audio Buffer', desc.settings.elements, []);
+				nextdialog = {
+					type: 'buffer',
+					data: { desc: desc, settings: [] },
+					elt: dialogdata.elt,
+				};
+				settings[i] = { buffer: null, type: 'new' };
+				break;
+			case 'null':
+				settings[i] = { buffer: null, type: 'none' };
+				break;
+			default:
+				settings[i] = buffers[value];
+				buffers[value].used.add(dialogdata.elt);
+				break;
+			}
+			break;
+		case 'file':
+			settings[i] = labels[+i+1].lastElementChild.files[0];
+			break;
+		case 'checkbox':
+			settings[i] = labels[+i+1].lastElementChild.checked;
+			break;
+		default:
+			settings[i] = labels[+i+1].lastElementChild.value;
 			break;
 		}
 	}
-	let args = data.desc.settings.apply(dialogelt, data.node, data.settings);
-	if (args) {
-		node_reload(data, args);
+	switch (dialogdata.type) {
+	case 'settings':
+		let args = dialogdata.data.desc.settings.apply(dialogdata.elt,
+			dialogdata.data.node, dialogdata.data.settings);
+		if (args)
+			node_reload(dialogdata.data, args,
+				dialogdata.elt.children[1].firstElementChild.dataset.type == 'stop');
+		break;
+	case 'buffer':
+		let buffer = dialogdata.data.desc.settings.make(audioctx, dialogdata.data.settings);
+		let data = { name: settings[0], buffer: null, type: 'loading', used: new Set() };
+		if (dialogdata.elt) {
+			let dataelt = eltdata.get(dialogdata.elt);
+			if (dataelt.settings[0] && dataelt.settings[0].used)
+				dataelt.settings[0].used.delete(dialogdata.elt);
+			dataelt.settings[0] = data;
+			data.used.add(dialogdata.elt);
+			dataelt.desc.settings.apply(dialogdata.elt, dataelt.node, dataelt.settings);
+		}
+		buffer.then(buffer => {
+			data.buffer = buffer;
+			data.type = 'loaded';
+			for (let use of data.used) {
+				let usedata = eltdata.get(use);
+				let args = usedata.desc.settings.apply(use, usedata.node, usedata.settings);
+				if (args)
+					node_reload(usedata, args);
+			}
+		});
+		if (dialogdata.id != undefined) {
+			data.used = buffers[dialogdata.id].used;
+			for (let use of data.used) {
+				let usedata = eltdata.get(use);
+				usedata.settings[0] = data;
+				let args = usedata.desc.settings.apply(use, usedata.node, usedata.settings);
+				if (args)
+					node_reload(usedata, args);
+			}
+			buffers[dialogdata.id] = data;
+		} else
+			buffers.push(data);
+		break;
 	}
-	dialog.style.display = 'none';
+	if(nextdialog)
+		dialogdata = nextdialog;
+	else
+		dialog.style.display = 'none';
 });
 
-dialog.firstElementChild.addEventListener('click', function settings_close(event) {
-	if (event.target.dataset.type == 'close') dialog.style.display = 'none';
+dialog.firstElementChild.addEventListener('click', function dialog_click(event) {
+	let elt = event.target.parentNode;
+	let index = Array.prototype.indexOf.call(elt.parentNode.children, elt) - 1;
+	switch (event.target.dataset.type) {
+	case 'close':
+		dialog.style.display = 'none';
+		break;
+	case 'edit':
+		let channels = [], buffer = buffers[index].buffer;
+		for (let i = 0; i < buffer.numberOfChannels; i++)
+			channels.push(buffer.getChannelData(i).join(','));
+		let settings = [buffers[index].name, channels.join('\n'), buffer.sampleRate];
+		dialog_make('Edit Audio Buffer', nodes.buffer_raw.settings.elements, settings);
+		dialogdata = {
+			type: 'buffer',
+			data: { desc: nodes.buffer_raw, settings: settings },
+			id: index
+		};
+		break;
+	case 'copy':
+		buffers.push({ ...buffers[index], used: new Set() });
+		elt.parentNode.insertBefore(elt.cloneNode(true), elt.parentNode.lastElementChild);
+		break;
+	case 'delete':
+		for (let use of buffers[index].used) {
+			let data = eltdata.get(use);
+			data.settings[0] = { buffer: null, type: 'none' };
+			data.desc.settings.apply(use, data.node, data.settings);
+		}
+		buffers.splice(index, 1);
+		elt.parentNode.removeChild(elt);
+		break;
+	case 'raw':
+	case 'file':
+		let desc = nodes['buffer_' + event.target.dataset.type];
+		dialog_make('New Audio Buffer', desc.settings.elements, []);
+		dialogdata = { type: 'buffer', data: { desc: desc, settings: [] } };
+		break;
+	}
 });
 
 /* Connections between nodes **********************************************************************/
@@ -104,8 +249,8 @@ function connection_make() {
 		enddata = eltdata.get(end.parentNode.parentNode.parentNode);
 		eltdata.set(end.parentNode.parentNode, enddata);
 	}
-	startdata.paths.push(movedata.path);
-	enddata.paths.push(movedata.path);
+	startdata.paths.add(movedata.path);
+	enddata.paths.add(movedata.path);
 	connect(start, startdata.node, end, enddata.node);
 	return true;
 }
@@ -115,14 +260,66 @@ function connection_delete(path) {
 	let startdata = eltdata.get(data.start.parentNode.parentNode);
 	let enddata = eltdata.get(data.end.parentNode.parentNode);
 	
-	startdata.paths.splice(startdata.paths.indexOf(path), 1);
-	enddata.paths.splice(enddata.paths.indexOf(path), 1);
+	startdata.paths.delete(path);
+	enddata.paths.delete(path);
 	container.firstElementChild.removeChild(path);
 	connect(data.start, startdata.node, data.end, enddata.node, true);
 }
 
+/* Menu buttons ***********************************************************************************/
+document.getElementById('menu').addEventListener('mousedown', function menu_mousedown(event) {
+	if (!event.target.dataset.type || event.target.dataset.type == 'buf') return;
+	let elt = node_create(event.target.dataset.type, event.target.innerHTML);
+
+	let offset = [
+		container.offsetLeft + elt.offsetWidth/2,
+		container.offsetTop + elt.offsetHeight/2,
+	];
+	
+	elt.style.marginLeft = event.clientX + window.scrollX - offset[0] + 'px';
+	elt.style.marginTop = event.clientY + window.scrollY - offset[1] + 'px';
+	elt.style.zIndex = 1;
+
+	movedata = {
+		elt: elt,
+		paths: new Set(),
+		x: -offset[0],
+		y: -offset[1],
+	};
+	document.addEventListener('mousemove', node_drag);
+	document.addEventListener('mouseup', e => {
+		if (elt.offsetTop < 0) {
+			elt.style.marginTop = '0px';
+			if (nextpos.x + elt.offsetWidth > container.clientWidth)
+				nextpos.x = 0;
+			elt.style.marginLeft = nextpos.x + 'px';
+			nextpos.x += elt.offsetWidth + 10;
+		}
+		elt.style.zIndex = null;
+		document.removeEventListener('mousemove', node_drag);
+	}, { once: true });
+});
+
+document.getElementById('menu').addEventListener('click', function menu_click(event) {
+	if (event.target.dataset.type != 'buf') return;
+	
+	let html = ['<div>Audio Buffers<img src="icons.svg#close" data-type="close" /></div>'];
+	for (let buf of buffers)
+		html.push('<div>', buf.name, '<img src="icons.svg#delete" data-type="delete" />',
+			'<img src="icons.svg#copy" data-type="copy" />',
+			'<img src="icons.svg#edit" data-type="edit" /></div>');
+	
+	html.push('<div><input type="button" value="Raw data" data-type="raw" />',
+		'<input type="button" value="Import file" data-type="file" />',
+		'<input type="button" value="Close" data-type="close" /></div>');
+	
+	dialog.firstElementChild.innerHTML = html.join('');
+	dialog.style.display = 'flex';
+	dialogdata = { type: 'buffer' };
+});
+
 /* Node management ********************************************************************************/
-function node_make(type, name) {
+function node_create(type, name) {
 	let desc = nodes[type];
 	let node = desc.create ? desc.create(audioctx) : audioctx['create' + desc.name]();
 	let elt = document.createElement('fieldset');
@@ -134,7 +331,9 @@ function node_make(type, name) {
 		html.push('<span class="multiple">', '<img src="icons.svg#circle">'.repeat(desc.inputs),
 			'</span>');
 
-	if (node instanceof AudioScheduledSourceNode)
+	if (node instanceof AudioBufferSourceNode)
+		html.push('<img src="icons.svg#none" data-type="settings" />');
+	else if (node instanceof AudioScheduledSourceNode)
 		html.push('<img src="icons.svg#play" data-type="start" />');
 	html.push('<span>', name, '</span>');
 	
@@ -146,7 +345,11 @@ function node_make(type, name) {
 	
 	if (desc.settings)
 		html.push('<img src="icons.svg#settings" data-type="settings" />');
-	html.push('<img src="icons.svg#delete" data-type="delete" /></div>');
+	if (node == audioctx.listener)
+		html.push('<img src="icons.svg#pause" data-type="suspend" />');
+	else
+		html.push('<img src="icons.svg#delete" data-type="delete" />');
+	html.push('</div>');
 	
 	for (let param in desc.audioparams) {
 		html.push(
@@ -189,56 +392,32 @@ function node_make(type, name) {
 	elt.innerHTML = html.join('');
 	container.appendChild(elt);
 	
-	let data = { node: node, paths: [], desc: desc };
+	let data = { node: node, paths: new Set(), desc: desc };
 	if (desc.settings)
 		data.settings = desc.settings.elements.map(e => e.initial);
 	if (node instanceof AudioScheduledSourceNode) {
 		let img = elt.children[1].firstElementChild;
-		node.onended = () => {
-			node_reload(data, [], img);
-			img.src = img.src.replace(/#.*$/, '#play');
-			img.dataset.type = 'start';
-		}
+		if (node instanceof AudioBufferSourceNode)
+			node.onended = function() {
+				node_reload(data, []);
+				if (this.buffer != null) {
+					img.src = img.src.replace(/#.*$/, '#play');
+					img.dataset.type = 'start';
+				}
+			}
+		else
+			node.onended = () => {
+				node_reload(data, []);
+				img.src = img.src.replace(/#.*$/, '#play');
+				img.dataset.type = 'start';
+			}
 	}
 	eltdata.set(elt, data);
 	
 	return elt;
 }
 
-document.getElementById('menu').addEventListener('mousedown', function node_create(event) {
-	if (!event.target.dataset.type) return;
-	let elt = node_make(event.target.dataset.type, event.target.innerHTML);
-
-	let offset = [
-		container.offsetLeft + elt.offsetWidth/2,
-		container.offsetTop + elt.offsetHeight/2,
-	];
-	
-	elt.style.marginLeft = event.clientX + window.scrollX - offset[0] + 'px';
-	elt.style.marginTop = event.clientY + window.scrollY - offset[1] + 'px';
-	elt.style.zIndex = 1;
-
-	movedata = {
-		elt: elt,
-		paths: [],
-		x: -offset[0],
-		y: -offset[1],
-	};
-	document.addEventListener('mousemove', node_drag);
-	document.addEventListener('mouseup', e => {
-		if (elt.offsetTop < 0) {
-			elt.style.marginTop = '0px';
-			if (nextpos.x + elt.offsetWidth > container.clientWidth)
-				nextpos.x = 0;
-			elt.style.marginLeft = nextpos.x + 'px';
-			nextpos.x += elt.offsetWidth + 10;
-		}
-		elt.style.zIndex = null;
-		document.removeEventListener('mousemove', node_drag);
-	}, { once: true });
-});
-
-function node_reload(data, params, img) {
+function node_reload(data, params, running) {
 	let node = AudioContext.prototype['create' + data.desc.name].apply(audioctx, params);
 	for (let param in data.desc.audioparams)
 		node[param].value = data.node[param].value;
@@ -253,8 +432,8 @@ function node_reload(data, params, img) {
 	if ((data.desc.settings || {}).reload)
 		data.desc.settings.reload(data.node, node, data.settings);
 	
-	for (let i = data.paths.length - 1; i >= 0; i--) {
-		let pathdata = eltdata.get(data.paths[i]);
+	for (let path of data.paths) {
+		let pathdata = eltdata.get(path);
 		let startdata = eltdata.get(pathdata.start.parentNode.parentNode);
 		let enddata = eltdata.get(pathdata.end.parentNode.parentNode);
 		let start = startdata.node, end = enddata.node;
@@ -265,13 +444,17 @@ function node_reload(data, params, img) {
 		if (end == data.node)
 			end = node;
 		if (!connect(pathdata.start, start, pathdata.end, end)) {
-			container.firstElementChild.removeChild(data.paths[i]);
-			startdata.paths.splice(startdata.paths.indexOf(data.paths[i]), 1);
-			enddata.paths.splice(enddata.paths.indexOf(data.paths[i]), 1);
+			container.firstElementChild.removeChild(path);
+			startdata.paths.delete(path);
+			enddata.paths.delete(path);
 		}
 	}
 	
 	node.onended = data.node.onended;
+	if (running) {
+		data.node.onended = null;
+		data.node.stop();
+	}
 	data.node = node;
 }
 
@@ -355,8 +538,8 @@ container.addEventListener('click', function node_click(event) {
 			event.target.dataset.type = 'suspend';
 			break;
 		case 'delete':
-			while(data.paths.length)
-				connection_delete(data.paths[0]);
+			for (let path of data.paths)
+				connection_delete(path);
 			if (elt.children[1].firstElementChild.dataset.type == 'stop') {
 				data.node.onended = null;
 				data.node.stop();
@@ -364,33 +547,12 @@ container.addEventListener('click', function node_click(event) {
 			container.removeChild(elt);
 			break;
 		case 'settings':
-			let html = ['<div>', data.desc.name, ' ', elt.firstElementChild.firstElementChild.value,
-				'<img src="icons.svg#close" data-type="close" /></div>'];
-			let elements = data.desc.settings.elements;
-			for (let i in elements) {
-				html.push('<label>', elements[i].label, ': ');
-				switch (elements[i].type) {
-				case 'textarea':
-					html.push('<textarea>', data.settings[i], '</textarea>');
-					break;
-				case 'checkbox':
-					html.push('<input type="checkbox"', data.settings[i] ? ' checked' : '', ' />');
-					break;
-				case 'number':
-					html.push('<input type="number" step="any" min="', elements[i].min,
-						'" max="', elements[i].max, '" value="', data.settings[i], '">');
-					break;
-				default:
-					html.push('<input type="', elements[i].type, '" value="', data.settings[i], '" />');
-					break;
-				}
-				html.push('</label>');
-			}
-			html.push('<div><input type="submit" value="Apply"/>',
-				'<input type="button" value="Cancel" data-type="close" /></div>');
-			dialog.firstElementChild.innerHTML = html.join('');
-			dialog.style.display = 'flex';
-			dialogelt = elt;
+			dialog_make(
+				data.desc.name + ' ' + elt.firstElementChild.firstElementChild.value,
+				data.desc.settings.elements,
+				data.settings,
+			);
+			dialogdata = { type: 'settings', elt: elt, data: data };
 			break;
 		}
 		break;
@@ -413,8 +575,8 @@ container.addEventListener('input', function node_input(event) {
 });
 
 /* Initialisation *********************************************************************************/
-(function iit() {
-	let elt = node_make('dest', 'Destination');
+(function init() {
+	let elt = node_create('dest', 'Destination');
 	elt.style.marginTop = '0px';
 	elt.style.marginLeft = container.clientWidth - elt.offsetWidth - 10 + 'px';
 })();

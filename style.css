@@ -3,7 +3,7 @@ body {
 	margin: 0;
 }
 
-input:not([type=checkbox]) {
+input:not([type=checkbox]):not([type=file]) {
 	width: 7em;
 }
 
