@@ -18,13 +18,13 @@ svg > :not(:target) { display: none; }
 	<path id="close" d="M1,1 9,9 M1,9 9,1" stroke="#555" fill="none" />
 	<path id="copy" d="M2,7 V1H6 M4,3 H8V9H4Z" stroke="#000" fill="none" />
 	<path id="edit" d="M7,1 9,3 8,4 6,2Z M5,3 7,5 3,9 1,9 1,7" />
-	<g id ="loading">
+	<g id="loading">
 		<clipPath id="loadclip">
 			<path d="M5,0.5 A4.5,4.5 0,0,1 5,9.5 A4.5,4.5 0,0,1 5,0.5 M5,1.5 A3.5,3.5 0,0,0 5,8.5 A3.5,3.5 0,0,0 5,1.5" />
 		</clipPath>
 		<foreignObject width="10" height="10" clip-path="url(#loadclip)">
 			<div xmlns="http://www.w3.org/1999/xhtml"/>
 		</foreignObject>
-		<animateTransform attributeName="transform" attributeType="XML" type="rotate" from="0,5,5" to="360,5,5" begin="0s" dur="1s" repeatCount="indefinite" />
+		<animateTransform attributeName="transform" attributeType="XML" type="rotate" from="0,5,5" to="360,5,5" dur="1s" repeatCount="indefinite" />
 	</g>
 </svg>

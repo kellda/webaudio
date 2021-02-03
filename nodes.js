@@ -81,12 +81,11 @@ const nodes = {
 				case 'loaded':
 						img.src = img.src.replace(/#.*$/, '#play');
 						img.dataset.type = 'start';
-						return [];
+						return;
 				case 'new':
 						return;
 				}
 			},
-			reload: (oldnode, newnode, settings) => newnode.buffer = settings[0].buffer,
 		},
 	},
 	buffer_raw: {

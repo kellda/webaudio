@@ -520,6 +520,8 @@ container.addEventListener('click', function node_click(event) {
 		let data = eltdata.get(elt);
 		switch (event.target.dataset.type) {
 		case 'start':
+			if (data.node instanceof AudioBufferSourceNode)
+				data.node.buffer = settings[0].buffer;
 			data.node.start();
 			event.target.src = event.target.src.replace(/#.*$/, '#stop');
 			event.target.dataset.type = 'stop';
