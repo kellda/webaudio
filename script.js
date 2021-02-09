@@ -8,12 +8,23 @@ let eltdata = new WeakMap(), nextpos = { x: 0, y: 0 }, buffers = [];
 let movedata, dialogdata;
 
 /* Settings modal dialog **************************************************************************/
-
 function dialog_make(name, elements, settings) {
 	let html = ['<div>', name, '<img src="icons.svg#close" data-type="close" /></div>'];
 	for (let i in elements) {
 		html.push('<label>', elements[i].label, ': ');
 		switch (elements[i].type) {
+		case 'mediastream':
+			html.push('<select required></select>');
+			navigator.mediaDevices.enumerateDevices().then(devices => {
+				let html = [];
+				for (let d of devices)
+					if(d.kind == 'audioinput')
+						html.push('<option value="', d.deviceId, '"',
+						settings[i].id == d.deviceId ? ' selected' : '',
+						'>', d.label, '</option>');
+				dialog.firstElementChild.children[1].lastElementChild.innerHTML = html.join('');
+			})
+			break;
 		case 'buffer':
 			html.push('<select><option value="null">(none)</option>');
 			for (let b in buffers)
@@ -53,6 +64,16 @@ dialog.firstElementChild.addEventListener('submit', function dialog_submit(event
 	let nextdialog = null;
 	for (let i in elements) {
 		switch (elements[i].type) {
+		case 'mediastream':
+			settings[i].id = labels[+i+1].lastElementChild.value;
+			if (settings[i].stream)
+				settings[i].stream.getTracks().forEach(t => t.stop());
+			navigator.mediaDevices.getUserMedia({ audio: { deviceId: { exact: settings[i].id }}})
+				.then(stream => {
+					settings[i].stream = stream;
+					node_reload(dialogdata.data, [stream], false);
+				});
+			break;
 		case 'buffer':
 			if (settings[i] && settings[i].used)
 				settings[i].used.delete(dialogdata.elt);
@@ -201,15 +222,13 @@ function connect(start, startnode, end, endnode, disconnect) {
 	return true;
 }
 
-function connection_draw(path, x1, y1, x2, y2) {
-	path.setAttribute('d',
-		`M${x1},${y1} C${(x1 + x2) / 2},${y1} ${(x1 + x2) / 2},${y2} ${x2},${y2}`);
-	//path.setAttribute('d',
-	//	`M${x1},${y1} C${x1},${Math.min(y1,y2) - 50} ${x2},${Math.min(y1,y2) - 50} ${x2},${y2}`);
+function connection_draw(paths, x1, y1, x2, y2) {
+	let d = `M${x1},${y1} C${(x1 + x2) / 2},${y1} ${(x1 + x2) / 2},${y2} ${x2},${y2}`;
+	paths.forEach(p => p.setAttribute('d', d));
 }
 
 function connection_create(event) {
-	connection_draw(movedata.path, movedata.x, movedata.y,
+	connection_draw(movedata.paths, movedata.x, movedata.y,
 		event.clientX + window.scrollX - container.offsetLeft,
 		event.clientY + window.scrollY - container.offsetTop,
 	);
@@ -231,8 +250,8 @@ function connection_make() {
 		end = event.target;
 	if (!start || !end) return false;
 	
-	eltdata.set(movedata.path, { start: start, end: end });
-	connection_draw(movedata.path,
+	eltdata.set(movedata.paths[1], { start: start, end: end, paths: movedata.paths });
+	connection_draw(movedata.paths,
 		start.offsetLeft + start.offsetWidth / 2,
 		start.offsetTop + start.offsetHeight / 2,
 		end.offsetLeft + end.offsetWidth / 2,
@@ -249,8 +268,8 @@ function connection_make() {
 		enddata = eltdata.get(end.parentNode.parentNode.parentNode);
 		eltdata.set(end.parentNode.parentNode, enddata);
 	}
-	startdata.paths.add(movedata.path);
-	enddata.paths.add(movedata.path);
+	startdata.paths.add(movedata.paths);
+	enddata.paths.add(movedata.paths);
 	connect(start, startdata.node, end, enddata.node);
 	return true;
 }
@@ -260,9 +279,9 @@ function connection_delete(path) {
 	let startdata = eltdata.get(data.start.parentNode.parentNode);
 	let enddata = eltdata.get(data.end.parentNode.parentNode);
 	
-	startdata.paths.delete(path);
-	enddata.paths.delete(path);
-	container.firstElementChild.removeChild(path);
+	startdata.paths.delete(data.paths);
+	enddata.paths.delete(data.paths);
+	data.paths.forEach(p => container.firstElementChild.removeChild(p));
 	connect(data.start, startdata.node, data.end, enddata.node, true);
 }
 
@@ -321,8 +340,8 @@ document.getElementById('menu').addEventListener('click', function menu_click(ev
 /* Node management ********************************************************************************/
 function node_create(type, name) {
 	let desc = nodes[type];
-	let node = desc.create ? desc.create(audioctx) : audioctx['create' + desc.name]();
 	let elt = document.createElement('fieldset');
+	let node = desc.create ? desc.create(audioctx, elt) : audioctx['create' + desc.name]();
 	
 	let html = ['<legend><input type="text" value="', type, '"/></legend><div>'];
 	if (desc.inputs == 1)
@@ -432,8 +451,8 @@ function node_reload(data, params, running) {
 	if ((data.desc.settings || {}).reload)
 		data.desc.settings.reload(data.node, node, data.settings);
 	
-	for (let path of data.paths) {
-		let pathdata = eltdata.get(path);
+	for (let paths of data.paths) {
+		let pathdata = eltdata.get(paths[1]);
 		let startdata = eltdata.get(pathdata.start.parentNode.parentNode);
 		let enddata = eltdata.get(pathdata.end.parentNode.parentNode);
 		let start = startdata.node, end = enddata.node;
@@ -444,9 +463,9 @@ function node_reload(data, params, running) {
 		if (end == data.node)
 			end = node;
 		if (!connect(pathdata.start, start, pathdata.end, end)) {
-			container.firstElementChild.removeChild(path);
-			startdata.paths.delete(path);
-			enddata.paths.delete(path);
+			paths.forEach(p => container.firstElementChild.removeChild(p));
+			startdata.paths.delete(paths);
+			enddata.paths.delete(paths);
 		}
 	}
 	
@@ -466,19 +485,21 @@ container.addEventListener('mousedown', function node_mousedown(event) {
 	event.preventDefault();
 	
 	if (tag == 'img') {
-		let path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-		container.firstElementChild.appendChild(path);
+		let line = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+		let clickable = line.cloneNode();
+		container.firstElementChild.appendChild(line);
+		container.firstElementChild.appendChild(clickable);
 		container.className = 'connect';
 		movedata = {
 			elt: elt,
-			path: path,
+			paths: [line, clickable],
 			x: elt.offsetLeft + elt.offsetWidth / 2,
 			y: elt.offsetTop + elt.offsetHeight / 2,
 		};
 		document.addEventListener('mousemove', connection_create);
 		document.addEventListener('mouseup', function node_mouseup(event) {
 			if (!connection_make())
-				container.firstElementChild.removeChild(movedata.path);
+				movedata.paths.forEach(p => container.firstElementChild.removeChild(p));
 			document.removeEventListener('mousemove', connection_create);
 			container.className = '';
 		}, { once: true });
@@ -499,9 +520,9 @@ container.addEventListener('mousedown', function node_mousedown(event) {
 function node_drag(event) {
 	movedata.elt.style.marginLeft = movedata.x + event.clientX + window.scrollX + 'px';
 	movedata.elt.style.marginTop = movedata.y + event.clientY + window.scrollY + 'px';
-	for (let path of movedata.paths) {
-		let data = eltdata.get(path);
-		connection_draw(path,
+	for (let paths of movedata.paths) {
+		let data = eltdata.get(paths[1]);
+		connection_draw(paths,
 			data.start.offsetLeft + data.start.offsetWidth / 2,
 			data.start.offsetTop + data.start.offsetHeight / 2,
 			data.end.offsetLeft + data.end.offsetWidth / 2,
@@ -540,12 +561,14 @@ container.addEventListener('click', function node_click(event) {
 			event.target.dataset.type = 'suspend';
 			break;
 		case 'delete':
-			for (let path of data.paths)
-				connection_delete(path);
+			for (let paths of data.paths)
+				connection_delete(paths[1]);
 			if (elt.children[1].firstElementChild.dataset.type == 'stop') {
 				data.node.onended = null;
 				data.node.stop();
 			}
+			if (data.desc.delete)
+				data.desc.delete(data.node);
 			container.removeChild(elt);
 			break;
 		case 'settings':

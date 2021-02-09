@@ -121,20 +121,52 @@ const nodes = {
 		name: 'MediaElementSource',
 		inputs: 0,
 		outputs: 1,
-		todo: { mediaElement: HTMLMediaElement },
+		settings: {
+			elements: [
+				{ label: 'Source', type: 'file' },
+			],
+			apply: (elt, node, settings) => {
+				URL.revokeObjectURL(node.mediaElement.src);
+				node.mediaElement.src = URL.createObjectURL(settings[0]);
+				elt.appendChild(node.mediaElement);
+			},
+		},
+		create: ctx => {
+			let elt = document.createElement('audio');
+			elt.controls = true;
+			return ctx.createMediaElementSource(elt);
+		},
+		delete: node => {
+			URL.revokeObjectURL(node.mediaElement.src);
+		}
 	},
 	stream: {
 		name: 'MediaStreamSource',
 		inputs: 0,
 		outputs: 1,
-		todo: { mediaStream: MediaStream },
-	},
-	track: {
-		name: 'MediaStreamTrackSource',
-		todo: { track: MediaStreamTrack },
+		settings: {
+			elements: [
+				{ label: 'Source', type: 'mediastream', initial: {} },
+			],
+			apply: () => {}
+		},
+		create: (ctx, elt) => {
+			// Request permission
+			navigator.mediaDevices
+				.getUserMedia({ audio: true })
+				.then(stream => {
+					eltdata.get(elt).settings[0].stream = stream;
+					node_reload(eltdata.get(elt), [stream])
+				});
+			// Fake node as it's hard to have an empty track
+			return ctx.createGain();
+		},
+		delete: node => {}
 	},
 	strdest: {
 		name: 'MediaStreamDestination',
+		inputs: 1,
+		outputs: 0,
 		todo: { stream: MediaStream },
 	},
 	gain: {
@@ -227,7 +259,7 @@ const nodes = {
 			],
 			apply: (elt, node, settings) => [settings[0].split(','), settings[1].split(',')],
 		},
-		create: (ctx) => ctx.createIIRFilter([1], [1]),
+		create: ctx => ctx.createIIRFilter([1], [1]),
 	},
 	compr: {
 		name: 'DynamicsCompressor',

@@ -91,6 +91,14 @@ body > :not(#container) {
 	stroke-linecap: round;
 }
 
+#container > svg > :nth-child(even) {
+	stroke-width: 5;
+}
+
+#container > svg > :nth-child(even):not(:hover) {
+	opacity: 0;
+}
+
 #container:not(.connect) > svg * {
 	pointer-events: auto;
 }
