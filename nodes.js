@@ -3,7 +3,40 @@ const nodes = {
 		name: 'Destination',
 		inputs: 1,
 		outputs: 0,
-		todo: { settings: ['forward', 'position', 'up'] },
+		settings: {
+			// Waiting for Firefox to implement these as AudioParams
+			// https://bugzilla.mozilla.org/show_bug.cgi?id=1283029
+			elements: [
+				{ label: 'postitionX', type: 'number', initial: 0 },
+				{ label: 'postitionY', type: 'number', initial: 0 },
+				{ label: 'postitionZ', type: 'number', initial: 0 },
+				{ label: 'forwardX', type: 'number', initial: 0 },
+				{ label: 'forwardY', type: 'number', initial: 0 },
+				{ label: 'forwardZ', type: 'number', initial: -1 },
+				{ label: 'upX', type: 'number', initial: 0 },
+				{ label: 'upY', type: 'number', initial: 1 },
+				{ label: 'upZ', type: 'number', initial: 0 },
+			],
+			apply: (elt, node, settings) => {
+				if (node.positionX) {
+					node.positionX.value = settings[0];
+					node.positionY.value = settings[1];
+					node.positionZ.value = settings[2];
+				} else {
+					node.setPosition(settings[0], settings[1], settings[2]);
+				}
+				if (node.forwardX) {
+					node.forwardX.value = settings[3];
+					node.forwardY.value = settings[4];
+					node.forwardZ.value = settings[5];
+					node.upX.value = settings[6];
+					node.upY.value = settings[7];
+					node.upZ.value = settings[8];
+				} else {
+					node.setOrientation(settings[3], settings[4], settings[5], settings[6], settings[7], settings[8]);
+				}
+			},
+		},
 		create: ctx => ctx.listener,
 	},
 	cst: {
