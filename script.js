@@ -252,10 +252,10 @@ function connection_make() {
 	
 	eltdata.set(movedata.paths[1], { start: start, end: end, paths: movedata.paths });
 	connection_draw(movedata.paths,
-		start.offsetLeft + start.offsetWidth / 2,
-		start.offsetTop + start.offsetHeight / 2,
-		end.offsetLeft + end.offsetWidth / 2,
-		end.offsetTop + end.offsetHeight / 2,
+		start.offsetLeft + start.offsetWidth * 0.6,
+		start.offsetTop + start.offsetHeight * 0.5,
+		end.offsetLeft + end.offsetWidth * 0.0,
+		end.offsetTop + end.offsetHeight * 0.5,
 	);
 	
 	let startdata = eltdata.get(start.parentNode.parentNode);
@@ -345,9 +345,9 @@ function node_create(type, name) {
 	
 	let html = ['<legend><input type="text" value="', type, '"/></legend><div>'];
 	if (desc.inputs == 1)
-		html.push('<img src="icons.svg#circle" />');
+		html.push('<img src="icons.svg#connect" />');
 	else if (desc.inputs > 1)
-		html.push('<span class="multiple">', '<img src="icons.svg#circle">'.repeat(desc.inputs),
+		html.push('<span class="multiple">', '<img src="icons.svg#connect">'.repeat(desc.inputs),
 			'</span>');
 
 	if (node instanceof AudioBufferSourceNode)
@@ -357,10 +357,10 @@ function node_create(type, name) {
 	html.push('<span>', name, '</span>');
 	
 	if (desc.outputs == 1)
-		html.push('<img src="icons.svg#circle" />');
+		html.push('<img src="icons.svg#connect" />');
 	else if (desc.outputs > 1)
 		html.push('<span class="multiple">',
-			'<img src="icons.svg#circle">'.repeat(desc.outputs), '</span>');
+			'<img src="icons.svg#connect">'.repeat(desc.outputs), '</span>');
 	
 	if (desc.settings)
 		html.push('<img src="icons.svg#settings" data-type="settings" />');
@@ -372,7 +372,7 @@ function node_create(type, name) {
 	
 	for (let param in desc.audioparams) {
 		html.push(
-			'<div data-param="', param, '"><img src="icons.svg#circle" /><label>', param, ': ',
+			'<div data-param="', param, '"><img src="icons.svg#connect" /><label>', param, ': ',
 			'<input type="number" step="any" min="', node[param].minValue,
 			'" max="', node[param].maxValue, '" value="', node[param].value,
 			'"/></label></div>'
@@ -493,8 +493,8 @@ container.addEventListener('mousedown', function node_mousedown(event) {
 		movedata = {
 			elt: elt,
 			paths: [line, clickable],
-			x: elt.offsetLeft + elt.offsetWidth / 2,
-			y: elt.offsetTop + elt.offsetHeight / 2,
+			x: elt.offsetLeft + elt.offsetWidth * 0.6,
+			y: elt.offsetTop + elt.offsetHeight * 0.5,
 		};
 		document.addEventListener('mousemove', connection_create);
 		document.addEventListener('mouseup', function node_mouseup(event) {
@@ -523,10 +523,10 @@ function node_drag(event) {
 	for (let paths of movedata.paths) {
 		let data = eltdata.get(paths[1]);
 		connection_draw(paths,
-			data.start.offsetLeft + data.start.offsetWidth / 2,
-			data.start.offsetTop + data.start.offsetHeight / 2,
-			data.end.offsetLeft + data.end.offsetWidth / 2,
-			data.end.offsetTop + data.end.offsetHeight / 2,
+			data.start.offsetLeft + data.start.offsetWidth * 0.6,
+			data.start.offsetTop + data.start.offsetHeight * 0.5,
+			data.end.offsetLeft + data.end.offsetWidth * 0.0,
+			data.end.offsetTop + data.end.offsetHeight * 0.5,
 		);
 	}
 }
