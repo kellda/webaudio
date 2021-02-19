@@ -46,7 +46,6 @@ body > :not(#container) {
 #container {
 	display: grid;
 	position: relative;
-	margin: 8px;
 }
 
 #container > fieldset {
@@ -73,12 +72,12 @@ body > :not(#container) {
 
 #container img[src$="#connect"], #container .multiple {
 	float: right;
-	margin-right: -1.75em;
+	margin-right: -1.25em;
 }
 
 #container img:first-child, #container .multiple:first-child {
 	float: left;
-	margin: 0 0.25em 0 calc(-0.75em - 2px);
+	margin: 0 0.25em 0 calc(-1.25em - 1px);
 }
 
 #container .multiple img {

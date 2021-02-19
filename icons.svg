@@ -8,8 +8,7 @@ svg > :not(:target) { display: none; }
   background: conic-gradient(#0000, #000f);
 }
 	</style>
-	<circle id="circle" r="4" cx="5" cy="5" stroke="#000" fill="none" />
-	<polyline id="connect" points="0,1 6,5 0,9" stroke="#000" fill="none" />
+	<circle id="connect" r="4" cx="5" cy="5" stroke="#000" fill="#ccc" />
 	<polygon id="none" points="1,1 9,5, 1,9" fill="#aaa" />
 	<polygon id="play" points="1,1 9,5, 1,9" />
 	<rect id="stop" x="1" y="1" width="8" height="8" />

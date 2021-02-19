@@ -5,7 +5,7 @@ let audioctx = new (AudioContext || webkitAudioContext)();
 let container = document.getElementById('container');
 let dialog = document.getElementById('dialog');
 let mdninfo = document.getElementById('mdninfo');
-let eltdata = new WeakMap(), nextpos = { x: 0, y: 0 }, buffers = [];
+let eltdata = new WeakMap(), nextpos = { x: 15, y: 10 }, buffers = [];
 let movedata, dialogdata;
 
 /* Settings modal dialog **************************************************************************/
@@ -205,14 +205,14 @@ dialog.firstElementChild.addEventListener('click', function dialog_click(event) 
 });
 
 /* Info from MDN **********************************************************************************/
-function mdninfo_show(name, info, url) {
+function mdninfo_show(info) {
 	mdninfo.contentDocument.head.children[1].replaceWith(info.style);
 	let article = mdninfo.contentDocument.body.firstElementChild;
-	article.children[0].firstChild.replaceWith(name);
+	article.children[0].firstChild.replaceWith(info.name);
 	article.children[1].replaceWith(info.text);
-	article.children[2].firstElementChild.href = url;
-	article.children[3].firstElementChild.textContent = name;
-	article.children[3].firstElementChild.href = url;
+	article.children[2].firstElementChild.href = info.url;
+	article.children[3].firstElementChild.textContent = info.name;
+	article.children[3].firstElementChild.href = info.url;
 	mdninfo.style.display = 'block';
 }
 
@@ -268,10 +268,10 @@ function connection_make() {
 	
 	eltdata.set(movedata.paths[1], { start: start, end: end, paths: movedata.paths });
 	connection_draw(movedata.paths,
-		start.offsetLeft + start.offsetWidth * 0.6,
-		start.offsetTop + start.offsetHeight * 0.5,
-		end.offsetLeft + end.offsetWidth * 0.0,
-		end.offsetTop + end.offsetHeight * 0.5,
+		start.offsetLeft + start.offsetWidth / 2,
+		start.offsetTop + start.offsetHeight / 2,
+		end.offsetLeft + end.offsetWidth / 2,
+		end.offsetTop + end.offsetHeight / 2,
 	);
 	
 	let startdata = eltdata.get(start.parentNode.parentNode);
@@ -307,8 +307,8 @@ document.getElementById('menu').addEventListener('mousedown', function menu_mous
 	let elt = node_create(event.target.dataset.type, event.target.innerHTML);
 
 	let offset = [
-		container.offsetLeft + elt.offsetWidth/2,
-		container.offsetTop + elt.offsetHeight/2,
+		container.offsetLeft + elt.offsetWidth / 2,
+		container.offsetTop + elt.offsetHeight / 2,
 	];
 	
 	elt.style.marginLeft = event.clientX + window.scrollX - offset[0] + 'px';
@@ -324,11 +324,11 @@ document.getElementById('menu').addEventListener('mousedown', function menu_mous
 	document.addEventListener('mousemove', node_drag);
 	document.addEventListener('mouseup', e => {
 		if (elt.offsetTop < 0) {
-			elt.style.marginTop = '0px';
-			if (nextpos.x + elt.offsetWidth > container.clientWidth)
-				nextpos.x = 0;
+			elt.style.marginTop = '10px';
+			if (nextpos.x + elt.offsetWidth + 10 > container.clientWidth)
+				nextpos.x = 15;
 			elt.style.marginLeft = nextpos.x + 'px';
-			nextpos.x += elt.offsetWidth + 10;
+			nextpos.x += elt.offsetWidth + 20;
 		}
 		elt.style.zIndex = null;
 		document.removeEventListener('mousemove', node_drag);
@@ -358,6 +358,24 @@ function node_create(type, name) {
 	let desc = nodes[type];
 	let elt = document.createElement('fieldset');
 	let node = desc.create ? desc.create(audioctx, elt) : audioctx['create' + desc.name]();
+	
+	if (!desc.info) {
+		let name = node.constructor.name;
+		if (desc.name == 'MediaStreamSource')
+			name = 'MediaStreamAudioSourceNode';
+		let url = 'https://developer.mozilla.org/en-US/docs/Web/API/' + name;
+		desc.info = url + ' not yet loaded';
+		let xhr = new XMLHttpRequest();
+		xhr.onload = () => {
+			let text = xhr.response.querySelector('.article > div > :not(:empty)');
+			let style = xhr.response.querySelector('link[rel="stylesheet"]');
+			desc.info = { name: name, url: url, text: text, style: style };
+		};
+		xhr.onerror = () => desc.info = 'Failed to load ' + url;
+		xhr.open('GET', 'https://api.allorigins.win/raw?url=' + url);
+		xhr.responseType = 'document';
+		xhr.send();
+	}
 	
 	let html = ['<legend><input type="text" value="', type, '"/></legend><div>'];
 	
@@ -512,8 +530,8 @@ container.addEventListener('mousedown', function node_mousedown(event) {
 		movedata = {
 			elt: elt,
 			paths: [line, clickable],
-			x: elt.offsetLeft + elt.offsetWidth * 0.6,
-			y: elt.offsetTop + elt.offsetHeight * 0.5,
+			x: elt.offsetLeft + elt.offsetWidth / 2,
+			y: elt.offsetTop + elt.offsetHeight / 2,
 		};
 		document.addEventListener('mousemove', connection_create);
 		document.addEventListener('mouseup', function node_mouseup(event) {
@@ -542,10 +560,10 @@ function node_drag(event) {
 	for (let paths of movedata.paths) {
 		let data = eltdata.get(paths[1]);
 		connection_draw(paths,
-			data.start.offsetLeft + data.start.offsetWidth * 0.6,
-			data.start.offsetTop + data.start.offsetHeight * 0.5,
-			data.end.offsetLeft + data.end.offsetWidth * 0.0,
-			data.end.offsetTop + data.end.offsetHeight * 0.5,
+			data.start.offsetLeft + data.start.offsetWidth / 2,
+			data.start.offsetTop + data.start.offsetHeight / 2,
+			data.end.offsetLeft + data.end.offsetWidth / 2,
+			data.end.offsetTop + data.end.offsetHeight / 2,
 		);
 	}
 }
@@ -599,28 +617,12 @@ container.addEventListener('click', function node_click(event) {
 			dialogdata = { type: 'settings', elt: elt, data: data };
 			break;
 		case 'info':
-			let name = data.node.constructor.name;
-			if (data.desc.name == 'MediaStreamSource')
-				name = 'MediaStreamAudioSourceNode';
-			let url = 'https://developer.mozilla.org/en-US/docs/Web/API/' + name;
-			if (data.desc.info)
-				mdninfo_show(name, data.desc.info, url);
+			if (typeof data.desc.info == 'object')
+				mdninfo_show(data.desc.info);
 			else {
-				let xhr = new XMLHttpRequest();
-				xhr.onload = () => {
-					let text = xhr.response.querySelector('.article > div > :not(:empty)');
-					let style = xhr.response.querySelector('link[rel="stylesheet"]');
-					data.desc.info = { text: text, style: style };
-					mdninfo_show(name, data.desc.info, url);
-				};
-				xhr.onerror = event => {
-					let msg = document.createElement('p');
-					msg.textContent = 'Failed to load ' + url;
-					document.getElementById('log').appendChild(msg);
-				}
-				xhr.open('GET', 'https://api.allorigins.win/raw?url=' + url);
-				xhr.responseType = 'document';
-				xhr.send();
+				let msg = document.createElement('p');
+				msg.textContent = data.desc.info;
+				document.getElementById('log').appendChild(msg);
 			}
 			break;
 		}
@@ -646,8 +648,8 @@ container.addEventListener('input', function node_input(event) {
 /* Initialisation *********************************************************************************/
 (function init() {
 	let elt = node_create('dest', 'Destination');
-	elt.style.marginTop = '0px';
-	elt.style.marginLeft = container.clientWidth - elt.offsetWidth - 10 + 'px';
+	elt.style.marginTop = '10px';
+	elt.style.marginLeft = container.clientWidth - elt.offsetWidth - 15 + 'px';
 	
 	let close = document.createElement('img');
 	close.src = document.baseURI.replace(/\/[^/]*(?:\?.*)?(?:#.*)?$/, '/icons.svg#close');
