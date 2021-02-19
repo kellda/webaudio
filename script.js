@@ -45,6 +45,9 @@ function dialog_make(name, elements, settings) {
 			html.push('<input type="number" step="any" min="', elements[i].min,
 				'" max="', elements[i].max, '" value="', settings[i], '" required >');
 			break;
+		case 'file':
+			html.push('<input type="', elements[i].type, '" accept="audio/*" required />');
+			break;
 		default:
 			html.push('<input type="', elements[i].type, '" value="', settings[i], '" required />');
 			break;
@@ -202,7 +205,7 @@ dialog.firstElementChild.addEventListener('click', function dialog_click(event) 
 });
 
 /* Info from MDN **********************************************************************************/
-function mdninfo_show(name, info, url, style) {
+function mdninfo_show(name, info, url) {
 	mdninfo.contentDocument.head.children[1].replaceWith(info.style);
 	let article = mdninfo.contentDocument.body.firstElementChild;
 	article.children[0].firstChild.replaceWith(name);
@@ -212,7 +215,6 @@ function mdninfo_show(name, info, url, style) {
 	article.children[3].firstElementChild.href = url;
 	mdninfo.style.display = 'block';
 }
-
 
 /* Connections between nodes **********************************************************************/
 function connect(start, startnode, end, endnode, disconnect) {
@@ -609,8 +611,13 @@ container.addEventListener('click', function node_click(event) {
 					let text = xhr.response.querySelector('.article > div > :not(:empty)');
 					let style = xhr.response.querySelector('link[rel="stylesheet"]');
 					data.desc.info = { text: text, style: style };
-					mdninfo_show(data.desc.name + 'Node', data.desc.info, url);
+					mdninfo_show(name, data.desc.info, url);
 				};
+				xhr.onerror = event => {
+					let msg = document.createElement('p');
+					msg.textContent = 'Failed to load ' + url;
+					document.getElementById('log').appendChild(msg);
+				}
 				xhr.open('GET', 'https://api.allorigins.win/raw?url=' + url);
 				xhr.responseType = 'document';
 				xhr.send();
@@ -643,7 +650,7 @@ container.addEventListener('input', function node_input(event) {
 	elt.style.marginLeft = container.clientWidth - elt.offsetWidth - 10 + 'px';
 	
 	let close = document.createElement('img');
-	close.src = document.baseURI.replace(/\/[^/]*$/, '/icons.svg#close');
+	close.src = document.baseURI.replace(/\/[^/]*(?:\?.*)?(?:#.*)?$/, '/icons.svg#close');
 	close.addEventListener('click', () => { mdninfo.style.display = null });
 	mdninfo.onload = () =>
 		mdninfo.contentDocument.body.firstElementChild.firstElementChild.appendChild(close);
