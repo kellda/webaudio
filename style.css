@@ -71,7 +71,7 @@ body > :not(#container) {
 	margin-left: 0.25em;
 }
 
-#container img[src$="#connect"], #container .multiple{
+#container img[src$="#connect"], #container .multiple {
 	float: right;
 	margin-right: -1.75em;
 }
@@ -128,6 +128,16 @@ body > :not(#container) {
 	background: #fff;
 	margin: auto;
 	padding: 8px;
+}
+
+#mdninfo {
+	display: none;
+	height: 100%;
+	width: 100%;
+	position: fixed;
+	top: 0;
+	left: 0;
+	border: none;
 }
 
 #log > p {

@@ -9,7 +9,7 @@ svg > :not(:target) { display: none; }
 }
 	</style>
 	<circle id="circle" r="4" cx="5" cy="5" stroke="#000" fill="none" />
-	<polyline id="connect" points="0,1 6,5 0,9" fill="none" stroke="#000" />
+	<polyline id="connect" points="0,1 6,5 0,9" stroke="#000" fill="none" />
 	<polygon id="none" points="1,1 9,5, 1,9" fill="#aaa" />
 	<polygon id="play" points="1,1 9,5, 1,9" />
 	<rect id="stop" x="1" y="1" width="8" height="8" />
@@ -19,13 +19,10 @@ svg > :not(:target) { display: none; }
 	<path id="close" d="M1,1 9,9 M1,9 9,1" stroke="#555" fill="none" />
 	<path id="copy" d="M2,7 V1H6 M4,3 H8V9H4Z" stroke="#000" fill="none" />
 	<path id="edit" d="M7,1 9,3 8,4 6,2Z M5,3 7,5 3,9 1,9 1,7" />
+	<path id="info" d="M1,5 A4,4 0,0,1 9,5 A4,4 0,0,1 1,5Z M4,4 A1,1 0,0,1 6,4 C6,5 5,5 5,6 M5,6.5 5,7.5" stroke="#000" fill="none" />
 	<g id="loading">
-		<clipPath id="loadclip">
-			<path d="M5,0.5 A4.5,4.5 0,0,1 5,9.5 A4.5,4.5 0,0,1 5,0.5 M5,1.5 A3.5,3.5 0,0,0 5,8.5 A3.5,3.5 0,0,0 5,1.5" />
-		</clipPath>
-		<foreignObject width="10" height="10" clip-path="url(#loadclip)">
-			<div xmlns="http://www.w3.org/1999/xhtml"/>
-		</foreignObject>
+		<clipPath id="loadclip"><path d="M5,0.5 A4.5,4.5 0,0,1 5,9.5 A4.5,4.5 0,0,1 5,0.5 M5,1.5 A3.5,3.5 0,0,0 5,8.5 A3.5,3.5 0,0,0 5,1.5" /></clipPath>
+		<foreignObject width="10" height="10" clip-path="url(#loadclip)"><div xmlns="http://www.w3.org/1999/xhtml" /></foreignObject>
 		<animateTransform attributeName="transform" attributeType="XML" type="rotate" from="0,5,5" to="360,5,5" dur="1s" repeatCount="indefinite" />
 	</g>
 </svg>

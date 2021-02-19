@@ -4,6 +4,7 @@
 let audioctx = new (AudioContext || webkitAudioContext)();
 let container = document.getElementById('container');
 let dialog = document.getElementById('dialog');
+let mdninfo = document.getElementById('mdninfo');
 let eltdata = new WeakMap(), nextpos = { x: 0, y: 0 }, buffers = [];
 let movedata, dialogdata;
 
@@ -200,6 +201,19 @@ dialog.firstElementChild.addEventListener('click', function dialog_click(event) 
 	}
 });
 
+/* Info from MDN **********************************************************************************/
+function mdninfo_show(name, info, url, style) {
+	mdninfo.contentDocument.head.children[1].replaceWith(info.style);
+	let article = mdninfo.contentDocument.body.firstElementChild;
+	article.children[0].firstChild.replaceWith(name);
+	article.children[1].replaceWith(info.text);
+	article.children[2].firstElementChild.href = url;
+	article.children[3].firstElementChild.textContent = name;
+	article.children[3].firstElementChild.href = url;
+	mdninfo.style.display = 'block';
+}
+
+
 /* Connections between nodes **********************************************************************/
 function connect(start, startnode, end, endnode, disconnect) {
 	let fn = disconnect ? 'disconnect' : 'connect', startidx = 0;
@@ -344,16 +358,13 @@ function node_create(type, name) {
 	let node = desc.create ? desc.create(audioctx, elt) : audioctx['create' + desc.name]();
 	
 	let html = ['<legend><input type="text" value="', type, '"/></legend><div>'];
+	
 	if (desc.inputs == 1)
 		html.push('<img src="icons.svg#connect" />');
 	else if (desc.inputs > 1)
 		html.push('<span class="multiple">', '<img src="icons.svg#connect">'.repeat(desc.inputs),
 			'</span>');
-
-	if (node instanceof AudioBufferSourceNode)
-		html.push('<img src="icons.svg#none" data-type="settings" />');
-	else if (node instanceof AudioScheduledSourceNode)
-		html.push('<img src="icons.svg#play" data-type="start" />');
+	
 	html.push('<span>', name, '</span>');
 	
 	if (desc.outputs == 1)
@@ -362,12 +373,18 @@ function node_create(type, name) {
 		html.push('<span class="multiple">',
 			'<img src="icons.svg#connect">'.repeat(desc.outputs), '</span>');
 	
+	if (node != audioctx.listener)
+		html.push('<img src="icons.svg#delete" data-type="delete" />');
+	html.push('<img src="icons.svg#info" data-type="info" />');
 	if (desc.settings)
 		html.push('<img src="icons.svg#settings" data-type="settings" />');
 	if (node == audioctx.listener)
 		html.push('<img src="icons.svg#pause" data-type="suspend" />');
-	else
-		html.push('<img src="icons.svg#delete" data-type="delete" />');
+	if (node instanceof AudioBufferSourceNode)
+		html.push('<img src="icons.svg#none" data-type="settings" />');
+	else if (node instanceof AudioScheduledSourceNode)
+		html.push('<img src="icons.svg#play" data-type="start" />');
+
 	html.push('</div>');
 	
 	for (let param in desc.audioparams) {
@@ -415,7 +432,7 @@ function node_create(type, name) {
 	if (desc.settings)
 		data.settings = desc.settings.elements.map(e => e.initial);
 	if (node instanceof AudioScheduledSourceNode) {
-		let img = elt.children[1].firstElementChild;
+		let img = elt.children[1].lastElementChild;
 		if (node instanceof AudioBufferSourceNode)
 			node.onended = function() {
 				node_reload(data, []);
@@ -478,11 +495,11 @@ function node_reload(data, params, running) {
 }
 
 container.addEventListener('mousedown', function node_mousedown(event) {
+	event.preventDefault();
 	let elt = event.target;
 	if (elt == container || elt.dataset.type) return;
 	let tag = elt.nodeName.toLowerCase();
 	if (tag == 'input' || tag == 'select'  || tag == 'path') return;
-	event.preventDefault();
 	
 	if (tag == 'img') {
 		let line = document.createElementNS('http://www.w3.org/2000/svg', 'path');
@@ -579,6 +596,26 @@ container.addEventListener('click', function node_click(event) {
 			);
 			dialogdata = { type: 'settings', elt: elt, data: data };
 			break;
+		case 'info':
+			let name = data.node.constructor.name;
+			if (data.desc.name == 'MediaStreamSource')
+				name = 'MediaStreamAudioSourceNode';
+			let url = 'https://developer.mozilla.org/en-US/docs/Web/API/' + name;
+			if (data.desc.info)
+				mdninfo_show(name, data.desc.info, url);
+			else {
+				let xhr = new XMLHttpRequest();
+				xhr.onload = () => {
+					let text = xhr.response.querySelector('.article > div > :not(:empty)');
+					let style = xhr.response.querySelector('link[rel="stylesheet"]');
+					data.desc.info = { text: text, style: style };
+					mdninfo_show(data.desc.name + 'Node', data.desc.info, url);
+				};
+				xhr.open('GET', 'https://api.allorigins.win/raw?url=' + url);
+				xhr.responseType = 'document';
+				xhr.send();
+			}
+			break;
 		}
 		break;
 	}
@@ -604,4 +641,75 @@ container.addEventListener('input', function node_input(event) {
 	let elt = node_create('dest', 'Destination');
 	elt.style.marginTop = '0px';
 	elt.style.marginLeft = container.clientWidth - elt.offsetWidth - 10 + 'px';
+	
+	let close = document.createElement('img');
+	close.src = document.baseURI.replace(/\/[^/]*$/, '/icons.svg#close');
+	close.addEventListener('click', () => { mdninfo.style.display = null });
+	mdninfo.onload = () =>
+		mdninfo.contentDocument.body.firstElementChild.firstElementChild.appendChild(close);
+	
+	mdninfo.srcdoc = `
+<!DOCTYPE html>
+<html>
+	<head>
+		<base href="https://developer.mozilla.org/" target="_blank" />
+		<link rel="stylesheet" />
+		<style>
+@font-face {
+	font-display: swap;
+	font-family: zillaslab;
+	font-style: normal;
+	font-weight: 700;
+	src:
+url(https://api.allorigins.win/raw?url=https://developer.mozilla.org/static/media/\
+ZillaSlab-Bold.subset.0beac26b.woff2) format("woff2"),
+url(https://api.allorigins.win/raw?url=https://developer.mozilla.org/static/media/\
+ZillaSlab-Bold.subset.72026b3c.woff) format("woff")
+}
+
+@font-face {
+	font-display: swap;
+	font-family: zillaslab;
+	font-style: normal;
+	font-weight: 400;
+	src:
+url(https://api.allorigins.win/raw?url=https://developer.mozilla.org/static/media/\
+ZillaSlab-Regular.subset.ce3a756d.woff2) format("woff2"),
+url(https://api.allorigins.win/raw?url=https://developer.mozilla.org/static/media/\
+ZillaSlab-Regular.subset.7e4c05c9.woff) format("woff")
+}
+
+html {
+	background: #000a;
+}
+
+body {
+	display: flex;
+}
+
+img {
+	width: 0.5em;
+	float: right;
+	margin: 0.4em;
+}
+
+.article {
+	background: #fff;
+	margin: auto;
+}
+		</style>
+	</head>
+	<body>
+		<article class="article">
+			<h2>name</h2>
+			<p></p>
+			<p><a>Read more …</a></p>
+			<p><a>name</a> by
+			<a href="/en-US/docs/MDN/About/contributors.txt">Mozilla Contributors</a>
+			is licensed under
+			<a href="https://creativecommons.org/licenses/by-sa/2.5/" rel="noopener">
+			CC-BY-SA 2.5</a>.</p>
+		</article>
+	</body>
+</html>`;
 })();
