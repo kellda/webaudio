@@ -169,9 +169,7 @@ const nodes = {
 			elt.controls = true;
 			return ctx.createMediaElementSource(elt);
 		},
-		delete: node => {
-			URL.revokeObjectURL(node.mediaElement.src);
-		}
+		delete: node => URL.revokeObjectURL(node.mediaElement.src),
 	},
 	stream: {
 		name: 'MediaStreamSource',
@@ -194,7 +192,6 @@ const nodes = {
 			// Fake node as it's hard to have an empty track
 			return ctx.createGain();
 		},
-		delete: node => {}
 	},
 	strdest: {
 		name: 'MediaStreamDestination',
@@ -280,6 +277,7 @@ const nodes = {
 				{ label: 'Show frequency phase response', type: 'checkbox' },
 			],
 			apply: (elt, node, settings) => {
+				// Initialize
 				if(!settings[3]) {
 					settings[3] = {
 						magn: new Float32Array(frequencies.length),
@@ -290,14 +288,26 @@ const nodes = {
 					settings[4] = [svg, svg.cloneNode(true), svg.cloneNode(true)];
 					settings[4].forEach(svg => elt.appendChild(svg));
 				}
+				// Register visualisations
 				if (settings[0] || settings[1] || settings[2])
 					animate.biquad.set(node, settings);
 				else
 					animate.biquad.delete(node);
 				for (let i = 0; i < 3; i++)
 					settings[4][i].style.display = settings[i] ? '' : 'none';
+				// Size may have changed: redraw paths
+				for (let paths of eltdata.get(elt).paths) {
+					let data = eltdata.get(paths[1]);
+					connection_draw(paths,
+						data.start.offsetLeft + data.start.offsetWidth / 2,
+						data.start.offsetTop + data.start.offsetHeight / 2,
+						data.end.offsetLeft + data.end.offsetWidth / 2,
+						data.end.offsetTop + data.end.offsetHeight / 2,
+					);
+				}
 			},
 		},
+		delete: node => animate.biquad.delete(node),
 	},
 	iir: {
 		name: 'IIRFilter',
@@ -418,6 +428,7 @@ const nodes = {
 				{ label: 'Show time domain data', type: 'checkbox' },
 			],
 			apply: (elt, node, settings) => {
+				// Initialize
 				if(!settings[2]) {
 					settings[2] = {
 						freq: new Uint8Array(16384),
@@ -428,14 +439,25 @@ const nodes = {
 					settings[3] = [svg, svg.cloneNode(true)];
 					settings[3].forEach(svg => elt.appendChild(svg));
 				}
+				// Register visualisations
 				if (settings[0] || settings[1])
 					animate.analy.set(node, settings);
 				else
 					animate.analy.delete(node);
 				for (let i = 0; i < 2; i++)
 					settings[3][i].style.display = settings[i] ? '' : 'none';
+				// Size may have changed: redraw paths
+				for (let paths of eltdata.get(elt).paths) {
+					let data = eltdata.get(paths[1]);
+					connection_draw(paths,
+						data.start.offsetLeft + data.start.offsetWidth / 2,
+						data.start.offsetTop + data.start.offsetHeight / 2,
+						data.end.offsetLeft + data.end.offsetWidth / 2,
+						data.end.offsetTop + data.end.offsetHeight / 2,
+					);
+				}
 			},
 		},
-		todo: { get__Data: ['Float', 'Byte', 'Frequency', 'TimeDomain'] },
+		delete: node => animate.analy.delete(node),
 	},
 };
