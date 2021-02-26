@@ -206,7 +206,14 @@ dialog.firstElementChild.addEventListener('click', function dialog_click(event) 
 
 /* Info from MDN **********************************************************************************/
 function mdninfo_show(info) {
-	mdninfo.contentDocument.head.children[1].replaceWith(info.style);
+	if (info.style) {
+		let head = mdninfo.contentDocument.head;
+		info.style.onload = () => {
+			if (head.children[1] != info.style)
+				head.removeChild(head.children[1]);
+		}
+		head.insertBefore(info.style, head.lastElementChild);
+	}
 	let article = mdninfo.contentDocument.body.firstElementChild;
 	article.children[0].firstChild.replaceWith(info.name);
 	article.children[1].replaceWith(info.text);
@@ -359,24 +366,6 @@ function node_create(type, name) {
 	let elt = document.createElement('fieldset');
 	let node = desc.create ? desc.create(audioctx, elt) : audioctx['create' + desc.name]();
 	
-	if (!desc.info) {
-		let name = node.constructor.name;
-		if (desc.name == 'MediaStreamSource')
-			name = 'MediaStreamAudioSourceNode';
-		let url = 'https://developer.mozilla.org/en-US/docs/Web/API/' + name;
-		desc.info = url + ' not yet loaded';
-		let xhr = new XMLHttpRequest();
-		xhr.onload = () => {
-			let text = xhr.response.querySelector('.article > div > :not(:empty)');
-			let style = xhr.response.querySelector('link[rel="stylesheet"]');
-			desc.info = { name: name, url: url, text: text, style: style };
-		};
-		xhr.onerror = () => desc.info = 'Failed to load ' + url;
-		xhr.open('GET', 'https://api.allorigins.win/raw?url=' + url);
-		xhr.responseType = 'document';
-		xhr.send();
-	}
-	
 	let html = ['<legend><input type="text" value="', type, '"/></legend><div>'];
 	
 	if (desc.inputs == 1)
@@ -515,11 +504,14 @@ function node_reload(data, params, running) {
 }
 
 container.addEventListener('mousedown', function node_mousedown(event) {
-	event.preventDefault();
 	let elt = event.target;
-	if (elt == container || elt.dataset.type) return;
+	if (elt == container || elt.dataset.type) {
+		event.preventDefault();
+		return;
+	}
 	let tag = elt.nodeName.toLowerCase();
 	if (tag == 'input' || tag == 'select'  || tag == 'path') return;
+	event.preventDefault();
 	
 	if (tag == 'img') {
 		let line = document.createElementNS('http://www.w3.org/2000/svg', 'path');
@@ -617,12 +609,28 @@ container.addEventListener('click', function node_click(event) {
 			dialogdata = { type: 'settings', elt: elt, data: data };
 			break;
 		case 'info':
-			if (typeof data.desc.info == 'object')
+			if (data.desc.info) {
 				mdninfo_show(data.desc.info);
-			else {
-				let msg = document.createElement('p');
-				msg.textContent = data.desc.info;
-				document.getElementById('log').appendChild(msg);
+			} else {
+				let name = data.node.constructor.name;
+				if (data.desc.name == 'MediaStreamSource')
+					name = 'MediaStreamAudioSourceNode';
+				let url = 'https://developer.mozilla.org/en-US/docs/Web/API/' + name;
+				let text = document.createElement('p');
+				text.textContent = 'loading...';
+				data.desc.info = { name: name, url: url, text: text };
+				mdninfo_show(data.desc.info);
+				
+				let xhr = new XMLHttpRequest();
+				xhr.onload = () => {
+					data.desc.info.text = xhr.response.querySelector('.article > div > :not(:empty)');
+					data.desc.info.style = xhr.response.querySelector('link[rel="stylesheet"]');
+					mdninfo_show(data.desc.info);
+				};
+				xhr.onerror = () => data.desc.info.text.textContent = 'Failed to load ' + url;
+				xhr.open('GET', 'https://api.allorigins.win/raw?url=' + url);
+				xhr.responseType = 'document';
+				xhr.send();
 			}
 			break;
 		}
@@ -662,7 +670,7 @@ container.addEventListener('input', function node_input(event) {
 <html>
 	<head>
 		<base href="https://developer.mozilla.org/" target="_blank" />
-		<link rel="stylesheet" />
+		<link rel="stylesheet" href="data:text/css,.article{padding:24px;max-width:85ch;font-family:sans-serif}" />
 		<style>
 @font-face {
 	font-display: swap;
