@@ -16,6 +16,11 @@ img, label input, label select {
 	margin-left: 0.5em;
 }
 
+svg * {
+	fill: none;
+	stroke: #000;
+}
+
 textarea {
 	display: block;
 	height: 1em;
@@ -48,11 +53,43 @@ body > :not(#container) {
 	position: relative;
 }
 
+#container > svg {
+	grid-area: 1/1;
+	height: 100%;
+	width: 100%;
+	z-index: 0;
+	pointer-events: none;
+}
+
+#container > svg * {
+	stroke-width: 0.1em;
+	stroke-linecap: round;
+}
+
+#container > svg > :nth-child(even) {
+	stroke-width: 0.25em;
+}
+
+#container > svg > :nth-child(even):not(:hover) {
+	opacity: 0;
+}
+
+#container:not(.connect) > svg * {
+	pointer-events: auto;
+}
+
 #container > fieldset {
 	grid-area: 1/1;
 	width: max-content;
 	height: max-content;
 	background: #fff;
+}
+
+#container > fieldset > svg {
+	display: block;
+	width: 300px;
+	height: 150px;
+	padding: 8px;
 }
 
 #container div, #dialog div, #dialog label {
@@ -84,33 +121,6 @@ body > :not(#container) {
 	display: block;
 	float: none;
 	margin: 0;
-}
-
-#container > svg {
-	grid-area: 1/1;
-	height: 100%;
-	width: 100%;
-	z-index: 0;
-	pointer-events: none;
-}
-
-#container > svg * {
-	fill: none;
-	stroke: #000;
-	stroke-width: 0.1em;
-	stroke-linecap: round;
-}
-
-#container > svg > :nth-child(even) {
-	stroke-width: 0.25em;
-}
-
-#container > svg > :nth-child(even):not(:hover) {
-	opacity: 0;
-}
-
-#container:not(.connect) > svg * {
-	pointer-events: auto;
 }
 
 #dialog {

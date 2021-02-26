@@ -7,6 +7,8 @@ let dialog = document.getElementById('dialog');
 let mdninfo = document.getElementById('mdninfo');
 let eltdata = new WeakMap(), nextpos = { x: 15, y: 10 }, buffers = [];
 let movedata, dialogdata;
+let animate = { biquad: new Map(), analy: new Map() };
+let frequencies = new Float32Array(301);
 
 /* Settings modal dialog **************************************************************************/
 function dialog_make(name, elements, settings) {
@@ -653,15 +655,65 @@ container.addEventListener('input', function node_input(event) {
 		node[param] = event.target.value;
 });
 
+/* Visualisations *********************************************************************************/
+function draw_frame() {
+	requestAnimationFrame(draw_frame);
+	
+	for (let [node, data] of animate.biquad.entries()) {
+		node.getFrequencyResponse(frequencies, data[3].magn, data[3].phase);
+		if (data[0]) {
+			let path = ['M'];
+			for (let i = 0; i < frequencies.length; i++)
+				path.push(i, 150 - 75 * data[3].magn[i]);
+			data[4][0].firstElementChild.setAttribute('d', path.join(' '));
+		}
+		if (data[1]) {
+			let path = ['M'];
+			for (let i = 0; i < frequencies.length; i++)
+				path.push(i, 75 - 20 * Math.log(data[3].magn[i]));
+			data[4][1].firstElementChild.setAttribute('d', path.join(' '));
+		}
+		if (data[2]) {
+			let path = ['M'];
+			for (let i = 0; i <= frequencies.length; i++)
+				path.push(i, 75 - data[3].phase[i] * 75 / Math.PI);
+			data[4][2].firstElementChild.setAttribute('d', path.join(' '));
+		}
+	}
+
+	for (let [node, data] of animate.analy.entries()) {
+		if (data[0]) {
+			node.getByteFrequencyData(data[2].freq);
+			let path = ['M'];
+			for (let i = 0; i < node.frequencyBinCount; i++)
+				path.push(i * 300 / node.frequencyBinCount, 150 - data[2].freq[i] * 150 / 255);
+			data[3][0].firstElementChild.setAttribute('d', path.join(' '));
+		}
+		if (data[1]) {
+			node.getByteTimeDomainData(data[2].time);
+			let path = ['M'];
+			for (let i = 0; i < node.fftSize; i++)
+				path.push(i * 300 / node.fftSize, 150 - data[2].time[i] * 150 / 255);
+			data[3][1].firstElementChild.setAttribute('d', path.join(' '));
+		}
+	}
+
+}
+
 /* Initialisation *********************************************************************************/
 (function init() {
 	let elt = node_create('dest', 'Destination');
 	elt.style.marginTop = '10px';
 	elt.style.marginLeft = container.clientWidth - elt.offsetWidth - 15 + 'px';
 	
+	let step = (Math.log(20000) - Math.log(20)) / (frequencies.length - 1);
+	for (let i = 0; i < frequencies.length; i++)
+		frequencies[i] = 20 * Math.exp(i * step);
+	draw_frame();
+	
 	let close = document.createElement('img');
 	close.src = document.baseURI.replace(/\/[^/]*(?:\?.*)?(?:#.*)?$/, '/icons.svg#close');
-	close.addEventListener('click', () => { mdninfo.style.display = null });
+	close.addEventListener('click', () => mdninfo.style.display = 'none');
 	mdninfo.onload = () =>
 		mdninfo.contentDocument.body.firstElementChild.firstElementChild.appendChild(close);
 	

@@ -271,13 +271,32 @@ const nodes = {
 			gain: {},
 		},
 		discreteparams: {
-			type: ['lowpass', 'highpass', 'band-pass', 'lowshelf', 'highshelf', 'peaking', 'notch', 'allpass'],
+			type: ['lowpass', 'highpass', 'bandpass', 'lowshelf', 'highshelf', 'peaking', 'notch', 'allpass'],
 		},
 		settings: {
 			elements: [
-				{ label: 'Show frequency response', type: 'checkbox' },
+				{ label: 'Show linear magnitude response', type: 'checkbox' },
+				{ label: 'Show logarithmic magnitude response', type: 'checkbox' },
+				{ label: 'Show frequency phase response', type: 'checkbox' },
 			],
-			apply: (elt, node, settings) => todo = 'getFrequencyResponse',
+			apply: (elt, node, settings) => {
+				if(!settings[3]) {
+					settings[3] = {
+						magn: new Float32Array(frequencies.length),
+						phase: new Float32Array(frequencies.length),
+					}
+					let svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+					svg.innerHTML = '<path/>';
+					settings[4] = [svg, svg.cloneNode(true), svg.cloneNode(true)];
+					settings[4].forEach(svg => elt.appendChild(svg));
+				}
+				if (settings[0] || settings[1] || settings[2])
+					animate.biquad.set(node, settings);
+				else
+					animate.biquad.delete(node);
+				for (let i = 0; i < 3; i++)
+					settings[4][i].style.display = settings[i] ? '' : 'none';
+			},
 		},
 	},
 	iir: {
@@ -392,6 +411,30 @@ const nodes = {
 			},
 		discreteparams: {
 			fftSize: ['32', '64', '128', '256', '512', '1024', ['2048', 'selected'], '4096', '8192', '16384', '32768'],
+		},
+		settings: {
+			elements: [
+				{ label: 'Show frequency data', type: 'checkbox' },
+				{ label: 'Show time domain data', type: 'checkbox' },
+			],
+			apply: (elt, node, settings) => {
+				if(!settings[2]) {
+					settings[2] = {
+						freq: new Uint8Array(16384),
+						time: new Uint8Array(32768),
+					}
+					let svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+					svg.innerHTML = '<path/>';
+					settings[3] = [svg, svg.cloneNode(true)];
+					settings[3].forEach(svg => elt.appendChild(svg));
+				}
+				if (settings[0] || settings[1])
+					animate.analy.set(node, settings);
+				else
+					animate.analy.delete(node);
+				for (let i = 0; i < 2; i++)
+					settings[3][i].style.display = settings[i] ? '' : 'none';
+			},
 		},
 		todo: { get__Data: ['Float', 'Byte', 'Frequency', 'TimeDomain'] },
 	},
