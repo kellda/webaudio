@@ -19,35 +19,27 @@ window.addEventListener('unhandledrejection', function (event) {
 	</head>
 	<body>
 		<div id="menu">
-			<div>
-				Inputs / Outputs: 
-			</div>
-			<div>
-				<button data-type="cst">Constant Source</button>
-				<button data-type="osc">Oscillator</button>
-				<button data-type="buffer">Audio Buffer Source</button>
-				<button data-type="media">Media Element Source</button>
-				<button data-type="stream">Media Stream Source</button>
-				<button data-type="strdest">Media Stream Destination</button>
-				<button data-type="buf">Audio Buffers</button>
-			</div>
-			<div>
-				Processing nodes:
-			</div>
-			<div>
-				<button data-type="gain">Gain</button>
-				<button data-type="delay">Delay</button>
-				<button data-type="stereo">Stereo Panner</button>
-				<button data-type="panner">Panner</button>
-				<button data-type="biquad">Biquad Filter</button>
-				<button data-type="iir">IIR Filter</button>
-				<button data-type="compr">Dynamics Compressor</button>
-				<button data-type="conv">Convolver</button>
-				<button data-type="shaper">Wave Shaper</button>
-				<button data-type="split">Channel Splitter</button>
-				<button data-type="merger">Channel Merger</button>
-				<button data-type="analy">Analyser</button>
-			</div>
+			<span>Inputs / Outputs:</span>
+			<button data-type="cst">Constant Source</button>
+			<button data-type="osc">Oscillator</button>
+			<button data-type="buffer">Audio Buffer Source</button>
+			<button data-type="media">Media Element Source</button>
+			<button data-type="stream">Media Stream Source</button>
+			<button data-type="strdest">Media Stream Destination</button>
+			<button data-type="buf">Audio Buffers</button>
+			<span>Processing nodes:</span>
+			<button data-type="gain">Gain</button>
+			<button data-type="delay">Delay</button>
+			<button data-type="stereo">Stereo Panner</button>
+			<button data-type="panner">Panner</button>
+			<button data-type="biquad">Biquad Filter</button>
+			<button data-type="iir">IIR Filter</button>
+			<button data-type="compr">Dynamics Compressor</button>
+			<button data-type="conv">Convolver</button>
+			<button data-type="shaper">Wave Shaper</button>
+			<button data-type="split">Channel Splitter</button>
+			<button data-type="merger">Channel Merger</button>
+			<button data-type="analy">Analyser</button>
 		</div>
 		<div id="graph">
 			<div id="container">

@@ -338,11 +338,11 @@ document.getElementById('menu').addEventListener('mousedown', function menu_mous
 	};
 	document.addEventListener('mousemove', node_drag);
 	document.addEventListener('mouseup', e => {
-		elt.style.marginLeft = elt.offsetLeft + graph.scrollLeft - graph.offsetLeft + 'px';
-		if (elt.offsetTop < graph.offsetTop)
-			elt.style.marginTop = graph.scrollTop + 10 + 'px';
+		elt.style.marginTop = elt.offsetTop + graph.scrollTop - graph.offsetTop + 'px';
+		if (elt.offsetLeft < graph.offsetLeft)
+			elt.style.marginLeft = graph.scrollLeft + 10 + 'px';
 		else
-			elt.style.marginTop = elt.offsetTop + graph.scrollTop - graph.offsetTop + 'px';
+			elt.style.marginLeft = elt.offsetLeft + graph.scrollLeft - graph.offsetLeft + 'px';
 		elt.style.position = null;
 		document.removeEventListener('mousemove', node_drag);
 	}, { once: true });
