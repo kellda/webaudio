@@ -1,6 +1,12 @@
+html, body {
+	height: 100%;
+}
+
 body {
 	font-family: sans-serif;
 	margin: 0;
+	display: flex;
+	flex-direction: column;
 }
 
 input:not([type=checkbox]):not([type=file]) {
@@ -28,33 +34,20 @@ textarea {
 }
 
 #menu {
-	position: sticky;
-	top: 0;
 	border-bottom: 1px solid black;
 	padding: 8px;
 	background: #fff;
 }
 
-#menu > div, #dialog form > :last-child {
-	display: flex;
-	flex-wrap: wrap;
-}
-
-#menu button, #dialog form > :last-child > * {
-	flex: max-content;
-}
-
-body > :not(#container) {
-	z-index: 1;
-}
-
 #container {
 	display: grid;
 	position: relative;
+	overflow: scroll;
+	flex: 1;
 }
 
 #container > svg {
-	grid-area: 1/1;
+	grid-area: 1 / 1;
 	height: 100%;
 	width: 100%;
 	z-index: 0;
@@ -139,6 +132,15 @@ body > :not(#container) {
 	padding: 8px;
 }
 
+#menu > div, #dialog form > :last-child {
+	display: flex;
+	flex-wrap: wrap;
+}
+
+#menu button, #dialog form > :last-child > * {
+	flex: max-content;
+}
+
 #mdninfo {
 	display: none;
 	height: 100%;
@@ -149,6 +151,6 @@ body > :not(#container) {
 	border: none;
 }
 
-#log > p {
+#log {
 	color: #f00;
 }
