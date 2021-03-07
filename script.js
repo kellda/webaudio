@@ -275,6 +275,11 @@ function connection_make() {
 		end = event.target;
 	if (!start || !end) return false;
 	
+	let last = container.firstElementChild.children.length - 2;
+	for (let i = 1; i < last; i += 2) {
+		let data = eltdata.get(container.firstElementChild.children[i]);
+		if (data.start == start && data.end == end) return false;
+	}
 	eltdata.set(movedata.paths[1], { start: start, end: end, paths: movedata.paths });
 	connection_draw(movedata.paths,
 		start.offsetLeft + start.offsetWidth / 2,
