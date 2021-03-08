@@ -2,10 +2,11 @@
 
 /* Global variables *******************************************************************************/
 let audioctx = new (AudioContext || webkitAudioContext)();
-let container = document.getElementById('container');
+let graph = document.getElementById('graph');
+let graphsvg = graph.firstElementChild.firstElementChild;
 let dialog = document.getElementById('dialog');
 let mdninfo = document.getElementById('mdninfo');
-let eltdata = new WeakMap(), nextpos = { x: 15, y: 10 }, buffers = [];
+let eltdata = new WeakMap(), buffers = [];
 let movedata, dialogdata;
 let animate = { biquad: new Map(), analy: new Map() };
 let frequencies = new Float32Array(301);
@@ -254,8 +255,8 @@ function connection_draw(paths, x1, y1, x2, y2) {
 
 function connection_create(event) {
 	connection_draw(movedata.paths, movedata.x, movedata.y,
-		event.clientX + window.scrollX - container.offsetLeft,
-		event.clientY + window.scrollY - container.offsetTop,
+		event.clientX + graph.scrollLeft - graph.offsetLeft,
+		event.clientY + graph.scrollTop - graph.offsetTop,
 	);
 }
 
@@ -275,17 +276,17 @@ function connection_make() {
 		end = event.target;
 	if (!start || !end) return false;
 	
-	let last = container.firstElementChild.children.length - 2;
+	let last = graphsvg.children.length - 2;
 	for (let i = 1; i < last; i += 2) {
-		let data = eltdata.get(container.firstElementChild.children[i]);
+		let data = eltdata.get(graphsvg.children[i]);
 		if (data.start == start && data.end == end) return false;
 	}
 	eltdata.set(movedata.paths[1], { start: start, end: end, paths: movedata.paths });
 	connection_draw(movedata.paths,
-		start.offsetLeft + start.offsetWidth / 2,
-		start.offsetTop + start.offsetHeight / 2,
-		end.offsetLeft + end.offsetWidth / 2,
-		end.offsetTop + end.offsetHeight / 2,
+		start.offsetLeft + start.offsetWidth / 2 - graph.offsetLeft,
+		start.offsetTop + start.offsetHeight / 2 - graph.offsetTop,
+		end.offsetLeft + end.offsetWidth / 2 - graph.offsetLeft,
+		end.offsetTop + end.offsetHeight / 2 - graph.offsetTop,
 	);
 	
 	let startdata = eltdata.get(start.parentNode.parentNode);
@@ -311,7 +312,7 @@ function connection_delete(path) {
 	
 	startdata.paths.delete(data.paths);
 	enddata.paths.delete(data.paths);
-	data.paths.forEach(p => container.firstElementChild.removeChild(p));
+	data.paths.forEach(p => graphsvg.removeChild(p));
 	connect(data.start, startdata.node, data.end, enddata.node, true);
 }
 
@@ -321,13 +322,13 @@ document.getElementById('menu').addEventListener('mousedown', function menu_mous
 	let elt = node_create(event.target.dataset.type, event.target.innerHTML);
 
 	let offset = [
-		container.offsetLeft + elt.offsetWidth / 2,
-		container.offsetTop + elt.offsetHeight / 2,
+		graph.offsetLeft + elt.offsetWidth / 2,
+		graph.offsetTop + elt.offsetHeight / 2,
 	];
 	
-	elt.style.marginLeft = event.clientX + window.scrollX - offset[0] + 'px';
-	elt.style.marginTop = event.clientY + window.scrollY - offset[1] + 'px';
-	elt.style.zIndex = 1;
+	elt.style.marginLeft = event.clientX - offset[0] + 'px';
+	elt.style.marginTop = event.clientY - offset[1] + 'px';
+	elt.style.position = 'absolute';
 
 	movedata = {
 		elt: elt,
@@ -337,14 +338,12 @@ document.getElementById('menu').addEventListener('mousedown', function menu_mous
 	};
 	document.addEventListener('mousemove', node_drag);
 	document.addEventListener('mouseup', e => {
-		if (elt.offsetTop < 0) {
-			elt.style.marginTop = '10px';
-			if (nextpos.x + elt.offsetWidth + 10 > container.clientWidth)
-				nextpos.x = 15;
-			elt.style.marginLeft = nextpos.x + 'px';
-			nextpos.x += elt.offsetWidth + 20;
-		}
-		elt.style.zIndex = null;
+		elt.style.marginLeft = elt.offsetLeft + graph.scrollLeft - graph.offsetLeft + 'px';
+		if (elt.offsetTop < graph.offsetTop)
+			elt.style.marginTop = graph.scrollTop + 10 + 'px';
+		else
+			elt.style.marginTop = elt.offsetTop + graph.scrollTop - graph.offsetTop + 'px';
+		elt.style.position = null;
 		document.removeEventListener('mousemove', node_drag);
 	}, { once: true });
 });
@@ -442,7 +441,7 @@ function node_create(type, name) {
 	}
 	
 	elt.innerHTML = html.join('');
-	container.appendChild(elt);
+	graph.firstElementChild.appendChild(elt);
 	
 	let data = { node: node, paths: new Set(), desc: desc };
 	if (desc.settings)
@@ -496,7 +495,7 @@ function node_reload(data, params, running) {
 		if (end == data.node)
 			end = node;
 		if (!connect(pathdata.start, start, pathdata.end, end)) {
-			paths.forEach(p => container.firstElementChild.removeChild(p));
+			paths.forEach(p => graphsvg.removeChild(p));
 			startdata.paths.delete(paths);
 			enddata.paths.delete(paths);
 		}
@@ -510,9 +509,9 @@ function node_reload(data, params, running) {
 	data.node = node;
 }
 
-container.addEventListener('mousedown', function node_mousedown(event) {
+graph.addEventListener('mousedown', function node_mousedown(event) {
 	let elt = event.target;
-	if (elt == container || elt.dataset.type) {
+	if (elt == graph || elt == graph.firstElementChild || elt.dataset.type) {
 		event.preventDefault();
 		return;
 	}
@@ -523,29 +522,29 @@ container.addEventListener('mousedown', function node_mousedown(event) {
 	if (tag == 'img') {
 		let line = document.createElementNS('http://www.w3.org/2000/svg', 'path');
 		let clickable = line.cloneNode();
-		container.firstElementChild.appendChild(line);
-		container.firstElementChild.appendChild(clickable);
-		container.className = 'connect';
+		graphsvg.appendChild(line);
+		graphsvg.appendChild(clickable);
+		graph.firstElementChild.className = 'connect';
 		movedata = {
 			elt: elt,
 			paths: [line, clickable],
-			x: elt.offsetLeft + elt.offsetWidth / 2,
-			y: elt.offsetTop + elt.offsetHeight / 2,
+			x: elt.offsetLeft + elt.offsetWidth / 2 - graph.offsetLeft,
+			y: elt.offsetTop + elt.offsetHeight / 2 - graph.offsetTop,
 		};
 		document.addEventListener('mousemove', connection_create);
 		document.addEventListener('mouseup', function node_mouseup(event) {
 			if (!connection_make())
-				movedata.paths.forEach(p => container.firstElementChild.removeChild(p));
+				movedata.paths.forEach(p => graphsvg.removeChild(p));
 			document.removeEventListener('mousemove', connection_create);
-			container.className = '';
+			graph.firstElementChild.className = '';
 		}, { once: true });
 	} else {
 		while (elt.nodeName.toLowerCase() != 'fieldset') elt = elt.parentNode;
 		movedata = {
 			elt: elt,
 			paths: eltdata.get(elt).paths,
-			x: elt.offsetLeft - event.clientX - window.scrollX,
-			y: elt.offsetTop - event.clientY - window.scrollY,
+			x: elt.offsetLeft - event.clientX - graph.offsetLeft,
+			y: elt.offsetTop - event.clientY - graph.offsetTop,
 		};
 		document.addEventListener('mousemove', node_drag);
 		document.addEventListener('mouseup',
@@ -554,20 +553,20 @@ container.addEventListener('mousedown', function node_mousedown(event) {
 });
 
 function node_drag(event) {
-	movedata.elt.style.marginLeft = movedata.x + event.clientX + window.scrollX + 'px';
-	movedata.elt.style.marginTop = movedata.y + event.clientY + window.scrollY + 'px';
+	movedata.elt.style.marginLeft = movedata.x + event.clientX + 'px';
+	movedata.elt.style.marginTop = movedata.y + event.clientY + 'px';
 	for (let paths of movedata.paths) {
 		let data = eltdata.get(paths[1]);
 		connection_draw(paths,
-			data.start.offsetLeft + data.start.offsetWidth / 2,
-			data.start.offsetTop + data.start.offsetHeight / 2,
-			data.end.offsetLeft + data.end.offsetWidth / 2,
-			data.end.offsetTop + data.end.offsetHeight / 2,
+			data.start.offsetLeft + data.start.offsetWidth / 2 - graph.offsetLeft,
+			data.start.offsetTop + data.start.offsetHeight / 2 - graph.offsetTop,
+			data.end.offsetLeft + data.end.offsetWidth / 2 - graph.offsetLeft,
+			data.end.offsetTop + data.end.offsetHeight / 2 - graph.offsetTop,
 		);
 	}
 }
 
-container.addEventListener('click', function node_click(event) {
+graph.addEventListener('click', function node_click(event) {
 	switch (event.target.nodeName.toLowerCase()) {
 	case 'path':
 		connection_delete(event.target);
@@ -605,7 +604,7 @@ container.addEventListener('click', function node_click(event) {
 			}
 			if (data.desc.delete)
 				data.desc.delete(data.node);
-			container.removeChild(elt);
+			graph.firstElementChild.removeChild(elt);
 			break;
 		case 'settings':
 			dialog_make(
@@ -645,7 +644,7 @@ container.addEventListener('click', function node_click(event) {
 	}
 });
 
-container.addEventListener('input', function node_input(event) {
+graph.addEventListener('input', function node_input(event) {
 	let tag = event.target.nodeName.toLowerCase();
 	if (tag != 'input' && tag != 'select') return;
 	let elt = event.target.parentNode.parentNode;
@@ -709,7 +708,7 @@ function draw_frame() {
 (function init() {
 	let elt = node_create('dest', 'Destination');
 	elt.style.marginTop = '10px';
-	elt.style.marginLeft = container.clientWidth - elt.offsetWidth - 15 + 'px';
+	elt.style.marginLeft = graph.clientWidth - elt.offsetWidth - 15 + 'px';
 	
 	let step = (Math.log(20000) - Math.log(20)) / (frequencies.length - 1);
 	for (let i = 0; i < frequencies.length; i++)
