@@ -3,7 +3,7 @@
 /* Global variables *******************************************************************************/
 let audioctx = new (AudioContext || webkitAudioContext)();
 let graph = document.getElementById('graph');
-let graphsvg = graph.firstElementChild.firstElementChild;
+let container = graph.firstElementChild, graphsvg = container.firstElementChild;
 let dialog = document.getElementById('dialog');
 let mdninfo = document.getElementById('mdninfo');
 let eltdata = new WeakMap(), graphsize, buffers = [];
@@ -255,8 +255,8 @@ function connection_draw(paths, x1, y1, x2, y2) {
 
 function connection_create(event) {
 	connection_draw(movedata.paths, movedata.x, movedata.y,
-		event.clientX + graph.scrollLeft - graph.firstElementChild.offsetLeft,
-		event.clientY + graph.scrollTop - graph.firstElementChild.offsetTop,
+		event.clientX + graph.scrollLeft - container.offsetLeft,
+		event.clientY + graph.scrollTop - container.offsetTop,
 	);
 }
 
@@ -283,10 +283,10 @@ function connection_make() {
 	}
 	eltdata.set(movedata.paths[1], { start: start, end: end, paths: movedata.paths });
 	connection_draw(movedata.paths,
-		start.offsetLeft + start.offsetWidth / 2 - graph.firstElementChild.offsetLeft,
-		start.offsetTop + start.offsetHeight / 2 - graph.firstElementChild.offsetTop,
-		end.offsetLeft + end.offsetWidth / 2 - graph.firstElementChild.offsetLeft,
-		end.offsetTop + end.offsetHeight / 2 - graph.firstElementChild.offsetTop,
+		start.offsetLeft + start.offsetWidth / 2 - container.offsetLeft,
+		start.offsetTop + start.offsetHeight / 2 - container.offsetTop,
+		end.offsetLeft + end.offsetWidth / 2 - container.offsetLeft,
+		end.offsetTop + end.offsetHeight / 2 - container.offsetTop,
 	);
 	
 	let startdata = eltdata.get(start.parentNode.parentNode);
@@ -316,9 +316,33 @@ function connection_delete(path) {
 	connect(data.start, startdata.node, data.end, enddata.node, true);
 }
 
+function graph_shrink() {
+	graphsize = [
+		container.offsetLeft,
+		container.offsetTop,
+		graph.clientWidth + container.offsetLeft,
+		graph.clientHeight + container.offsetTop
+	];
+	for (let node of container.children) {
+		if (node.offsetLeft - 8 < graphsize[0])
+			graphsize[0] = node.offsetLeft - 8;
+		if (node.offsetTop - 8 < graphsize[1])
+			graphsize[1] = node.offsetTop - 8;
+		if (node.offsetLeft + node.offsetWidth + 5 > graphsize[2])
+			graphsize[2] = node.offsetLeft + node.offsetWidth + 5;
+		if (node.offsetTop + node.offsetHeight + 5 > graphsize[3])
+			graphsize[3] = node.offsetTop + node.offsetHeight + 5;
+	}
+	graphsize[3] -= graphsize[1];
+	graphsize[2] -= graphsize[0];
+	graphsize[1] -= container.offsetTop;
+	graphsize[0] -= container.offsetLeft;
+	graph_resize();
+}
+
 function graph_resize() {
-	graph.firstElementChild.style.marginLeft = -graphsize[0] + 'px';
-	graph.firstElementChild.style.marginTop = -graphsize[1] + 'px';
+	container.style.marginLeft = -graphsize[0] + 'px';
+	container.style.marginTop = -graphsize[1] + 'px';
 	graphsvg.style.marginLeft = graphsize[0] + 'px';
 	graphsvg.style.marginTop = graphsize[1] + 'px';
 	graphsvg.style.width = graphsize[2] + 'px';
@@ -332,8 +356,8 @@ document.getElementById('menu').addEventListener('mousedown', function menu_mous
 	let elt = node_create(event.target.dataset.type, event.target.innerHTML);
 
 	let offset = [
-		graph.firstElementChild.offsetLeft + elt.offsetWidth / 2,
-		graph.firstElementChild.offsetTop + elt.offsetHeight / 2,
+		container.offsetLeft + elt.offsetWidth / 2,
+		container.offsetTop + elt.offsetHeight / 2,
 	];
 	
 	elt.style.marginLeft = event.clientX - offset[0] + 'px';
@@ -348,12 +372,13 @@ document.getElementById('menu').addEventListener('mousedown', function menu_mous
 	};
 	document.addEventListener('mousemove', node_drag);
 	document.addEventListener('mouseup', e => {
-		elt.style.marginTop = elt.offsetTop + graph.scrollTop - graph.firstElementChild.offsetTop + 'px';
-		if (elt.offsetLeft < graph.firstElementChild.offsetLeft)
+		elt.style.marginTop = elt.offsetTop + graph.scrollTop - container.offsetTop + 'px';
+		if (elt.offsetLeft < container.offsetLeft)
 			elt.style.marginLeft = graph.scrollLeft + 10 + 'px';
 		else
-			elt.style.marginLeft = elt.offsetLeft + graph.scrollLeft - graph.firstElementChild.offsetLeft + 'px';
+			elt.style.marginLeft = elt.offsetLeft + graph.scrollLeft - container.offsetLeft + 'px';
 		elt.style.position = null;
+		graph_shrink();
 		document.removeEventListener('mousemove', node_drag);
 	}, { once: true });
 });
@@ -451,7 +476,7 @@ function node_create(type, name) {
 	}
 	
 	elt.innerHTML = html.join('');
-	graph.firstElementChild.appendChild(elt);
+	container.appendChild(elt);
 	
 	let data = { node: node, paths: new Set(), desc: desc };
 	if (desc.settings)
@@ -521,7 +546,7 @@ function node_reload(data, params, running) {
 
 graph.addEventListener('mousedown', function node_mousedown(event) {
 	let elt = event.target;
-	if (elt == graph || elt == graph.firstElementChild || elt.dataset.type) {
+	if (elt == graph || elt == container || elt.dataset.type) {
 		event.preventDefault();
 		return;
 	}
@@ -534,31 +559,33 @@ graph.addEventListener('mousedown', function node_mousedown(event) {
 		let clickable = line.cloneNode();
 		graphsvg.appendChild(line);
 		graphsvg.appendChild(clickable);
-		graph.firstElementChild.className = 'connect';
+		container.className = 'connect';
 		movedata = {
 			elt: elt,
 			paths: [line, clickable],
-			x: elt.offsetLeft + elt.offsetWidth / 2 - graph.firstElementChild.offsetLeft,
-			y: elt.offsetTop + elt.offsetHeight / 2 - graph.firstElementChild.offsetTop,
+			x: elt.offsetLeft + elt.offsetWidth / 2 - container.offsetLeft,
+			y: elt.offsetTop + elt.offsetHeight / 2 - container.offsetTop,
 		};
 		document.addEventListener('mousemove', connection_create);
 		document.addEventListener('mouseup', function node_mouseup(event) {
 			if (!connection_make())
 				movedata.paths.forEach(p => graphsvg.removeChild(p));
 			document.removeEventListener('mousemove', connection_create);
-			graph.firstElementChild.className = '';
+			container.className = '';
 		}, { once: true });
 	} else {
 		while (elt.nodeName.toLowerCase() != 'fieldset') elt = elt.parentNode;
 		movedata = {
 			elt: elt,
 			paths: eltdata.get(elt).paths,
-			x: elt.offsetLeft - event.clientX - graph.firstElementChild.offsetLeft,
-			y: elt.offsetTop - event.clientY - graph.firstElementChild.offsetTop,
+			x: elt.offsetLeft - event.clientX - container.offsetLeft,
+			y: elt.offsetTop - event.clientY - container.offsetTop,
 		};
 		document.addEventListener('mousemove', node_drag);
-		document.addEventListener('mouseup',
-			e => document.removeEventListener('mousemove', node_drag), { once: true });
+		document.addEventListener('mouseup', e => {
+			graph_shrink();
+			document.removeEventListener('mousemove', node_drag);
+		}, { once: true });
 	}
 });
 
@@ -567,13 +594,15 @@ function node_drag(event) {
 	if (!movedata.elt.style.position) {
 		let resized = false, scroll = [0, 0];
 		if (left - 8 < graphsize[0]) {
-			scroll[0] = left - 8 - graphsize[0];
+			scroll[0] = graphsize[0] - left + 8;
 			graphsize[0] = left - 8;
+			graphsize[2] += scroll[0];
 			resized = true;
 		}
 		if (top - 8 < graphsize[1]) {
-			scroll[1] = top - 8 - graphsize[1];
+			scroll[1] = graphsize[1] - top + 8;
 			graphsize[1] = top - 8;
+			graphsize[3] += scroll[1];
 			resized = true;
 		}
 		if (graph.scrollWidth > graphsize[2]) {
@@ -586,7 +615,7 @@ function node_drag(event) {
 		}
 		if (resized) {
 			graph_resize();
-			graph.scrollBy(-scroll[0], -scroll[1]);
+			graph.scrollBy(scroll[0], scroll[1]);
 		}
 	}
 	
@@ -596,10 +625,10 @@ function node_drag(event) {
 	for (let paths of movedata.paths) {
 		let data = eltdata.get(paths[1]);
 		connection_draw(paths,
-			data.start.offsetLeft + data.start.offsetWidth / 2 - graph.firstElementChild.offsetLeft,
-			data.start.offsetTop + data.start.offsetHeight / 2 - graph.firstElementChild.offsetTop,
-			data.end.offsetLeft + data.end.offsetWidth / 2 - graph.firstElementChild.offsetLeft,
-			data.end.offsetTop + data.end.offsetHeight / 2 - graph.firstElementChild.offsetTop,
+			data.start.offsetLeft + data.start.offsetWidth / 2 - container.offsetLeft,
+			data.start.offsetTop + data.start.offsetHeight / 2 - container.offsetTop,
+			data.end.offsetLeft + data.end.offsetWidth / 2 - container.offsetLeft,
+			data.end.offsetTop + data.end.offsetHeight / 2 - container.offsetTop,
 		);
 	}
 }
@@ -642,7 +671,7 @@ graph.addEventListener('click', function node_click(event) {
 			}
 			if (data.desc.delete)
 				data.desc.delete(data.node);
-			graph.firstElementChild.removeChild(elt);
+			container.removeChild(elt);
 			break;
 		case 'settings':
 			dialog_make(
@@ -747,7 +776,7 @@ function draw_frame() {
 	let elt = node_create('dest', 'Destination');
 	elt.style.marginTop = '10px';
 	elt.style.marginLeft = graph.clientWidth - elt.offsetWidth - 15 + 'px';
-	graphsize = [0, 0, graph.scrollWidth, graph.scrollHeight];
+	graphsize = [0, 0, graph.clientWidth, graph.clientHeight];
 	graph_resize();
 	
 	let step = (Math.log(20000) - Math.log(20)) / (frequencies.length - 1);
