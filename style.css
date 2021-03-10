@@ -8,6 +8,7 @@ body {
 	display: flex;
 	flex-direction: column;
 	overflow: hidden;
+	user-select: none;
 }
 
 input:not([type=checkbox]):not([type=file]) {
@@ -16,6 +17,7 @@ input:not([type=checkbox]):not([type=file]) {
 
 img {
 	width: 1em;
+	cursor: pointer;
 }
 
 img, label input, label select {

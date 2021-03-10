@@ -99,7 +99,7 @@ const nodes = {
 				{ label: 'Audio Buffer', type: 'buffer' },
 			],
 			apply: (elt, node, settings) => {
-				let img = elt.children[1].firstElementChild;
+				let img = elt.children[1].lastElementChild;
 				switch (settings[0].type) {
 				case 'none':
 						img.src = img.src.replace(/#.*$/, '#none');
