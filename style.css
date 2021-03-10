@@ -45,7 +45,7 @@ textarea {
 	grid-row: 1 / -1;
 }
 
-#menu > * {
+#menu button {
 	display: block;
 	width: 100%;
 }
