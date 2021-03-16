@@ -316,14 +316,12 @@ function connection_delete(path) {
 	connect(data.start, startdata.node, data.end, enddata.node, true);
 }
 
-function graph_shrink() {
-	graphsize = [
-		container.offsetLeft,
-		container.offsetTop,
-		graph.clientWidth + container.offsetLeft,
-		graph.clientHeight + container.offsetTop
-	];
+/* Audio graph area *******************************************************************************/
+function graph_measure(skip) {
+	graphsize = [Infinity, Infinity, -Infinity, -Infinity];
 	for (let node of container.children) {
+		if (node == graphsvg || node == skip)
+			continue;
 		if (node.offsetLeft - 8 < graphsize[0])
 			graphsize[0] = node.offsetLeft - 8;
 		if (node.offsetTop - 8 < graphsize[1])
@@ -333,21 +331,34 @@ function graph_shrink() {
 		if (node.offsetTop + node.offsetHeight + 5 > graphsize[3])
 			graphsize[3] = node.offsetTop + node.offsetHeight + 5;
 	}
-	graphsize[3] -= graphsize[1];
-	graphsize[2] -= graphsize[0];
-	graphsize[1] -= container.offsetTop;
 	graphsize[0] -= container.offsetLeft;
-	graph_resize();
+	graphsize[1] -= container.offsetTop;
+	graphsize[2] -= container.offsetLeft;
+	graphsize[3] -= container.offsetTop;
 }
 
-function graph_resize() {
-	container.style.marginLeft = -graphsize[0] + 'px';
-	container.style.marginTop = -graphsize[1] + 'px';
-	graphsvg.style.marginLeft = graphsize[0] + 'px';
-	graphsvg.style.marginTop = graphsize[1] + 'px';
-	graphsvg.style.width = graphsize[2] + 'px';
-	graphsvg.style.height = graphsize[3] + 'px';
-	graphsvg.setAttribute('viewBox', graphsize.join(' '));
+function graph_resize(left, top, right, bottom) {
+	let origin = [
+		graph.scrollLeft - container.offsetLeft + graph.offsetLeft,
+		graph.scrollTop - container.offsetTop,
+	];
+	if (left > origin[0])
+		left = origin[0];
+	if (top > origin[1])
+		top = origin[1];
+	if (right < origin[0] + graph.clientWidth)
+		right = origin[0] + graph.clientWidth;
+	if (bottom < origin[1] + graph.clientHeight)
+		bottom = origin[1] + graph.clientHeight;
+	
+	container.style.marginLeft = -left + 'px';
+	container.style.marginTop = -top + 'px';
+	graphsvg.style.marginLeft = left + 'px';
+	graphsvg.style.marginTop = top + 'px';
+	graphsvg.style.width = right - left + 'px';
+	graphsvg.style.height = bottom - top + 'px';
+	graphsvg.setAttribute('viewBox', [left, top, right - left, bottom - top].join(' '));
+	graph.scrollTo(origin[0] - left, origin[1] - top);
 }
 
 /* Menu buttons ***********************************************************************************/
@@ -370,6 +381,7 @@ document.getElementById('menu').addEventListener('mousedown', function menu_mous
 		x: -offset[0],
 		y: -offset[1],
 	};
+	
 	document.addEventListener('mousemove', node_drag);
 	document.addEventListener('mouseup', e => {
 		elt.style.marginTop = elt.offsetTop + graph.scrollTop - container.offsetTop + 'px';
@@ -378,7 +390,8 @@ document.getElementById('menu').addEventListener('mousedown', function menu_mous
 		else
 			elt.style.marginLeft = elt.offsetLeft + graph.scrollLeft - container.offsetLeft + 'px';
 		elt.style.position = null;
-		graph_shrink();
+		graph_measure();
+		graph_resize(...graphsize);
 		document.removeEventListener('mousemove', node_drag);
 	}, { once: true });
 });
@@ -567,7 +580,7 @@ graph.addEventListener('mousedown', function node_mousedown(event) {
 			y: elt.offsetTop + elt.offsetHeight / 2 - container.offsetTop,
 		};
 		document.addEventListener('mousemove', connection_create);
-		document.addEventListener('mouseup', function node_mouseup(event) {
+		document.addEventListener('mouseup', e => {
 			if (!connection_make())
 				movedata.paths.forEach(p => graphsvg.removeChild(p));
 			document.removeEventListener('mousemove', connection_create);
@@ -575,6 +588,7 @@ graph.addEventListener('mousedown', function node_mousedown(event) {
 		}, { once: true });
 	} else {
 		while (elt.nodeName.toLowerCase() != 'fieldset') elt = elt.parentNode;
+		graph_measure(elt);
 		movedata = {
 			elt: elt,
 			paths: eltdata.get(elt).paths,
@@ -583,7 +597,15 @@ graph.addEventListener('mousedown', function node_mousedown(event) {
 		};
 		document.addEventListener('mousemove', node_drag);
 		document.addEventListener('mouseup', e => {
-			graph_shrink();
+			let elt = movedata.elt;
+			if (elt.offsetLeft - container.offsetLeft - 8 < graphsize[0])
+				graphsize[0] = elt.offsetLeft - container.offsetLeft - 8;
+			if (elt.offsetTop - container.offsetTop - 8 < graphsize[1])
+				graphsize[1] = elt.offsetTop - container.offsetTop - 8;
+			if (elt.offsetLeft - container.offsetLeft + elt.offsetWidth + 5 > graphsize[2])
+				graphsize[2] = elt.offsetLeft - container.offsetLeft + elt.offsetWidth + 5;
+			if (elt.offsetTop - container.offsetTop + elt.offsetHeight + 5 > graphsize[3])
+				graphsize[3] = elt.offsetTop - container.offsetTop + elt.offsetHeight + 5;
 			document.removeEventListener('mousemove', node_drag);
 		}, { once: true });
 	}
@@ -591,33 +613,13 @@ graph.addEventListener('mousedown', function node_mousedown(event) {
 
 function node_drag(event) {
 	let left = movedata.x + event.clientX, top = movedata.y + event.clientY;
-	if (!movedata.elt.style.position) {
-		let resized = false, scroll = [0, 0];
-		if (left - 8 < graphsize[0]) {
-			scroll[0] = graphsize[0] - left + 8;
-			graphsize[0] = left - 8;
-			graphsize[2] += scroll[0];
-			resized = true;
-		}
-		if (top - 8 < graphsize[1]) {
-			scroll[1] = graphsize[1] - top + 8;
-			graphsize[1] = top - 8;
-			graphsize[3] += scroll[1];
-			resized = true;
-		}
-		if (graph.scrollWidth > graphsize[2]) {
-			graphsize[2] = graph.scrollWidth;
-			resized = true;
-		}
-		if (graph.scrollHeight > graphsize[3]) {
-			graphsize[3] = graph.scrollHeight;
-			resized = true;
-		}
-		if (resized) {
-			graph_resize();
-			graph.scrollBy(scroll[0], scroll[1]);
-		}
-	}
+	if (!movedata.elt.style.position)
+		graph_resize(
+			Math.min(graphsize[0], left - 8),
+			Math.min(graphsize[1], top - 8),
+			Math.max(graphsize[2], left + movedata.elt.offsetWidth + 5),
+			Math.max(graphsize[3], top + movedata.elt.offsetHeight + 5),
+		);
 	
 	movedata.elt.style.marginLeft = left + 'px';
 	movedata.elt.style.marginTop = top + 'px';
@@ -776,8 +778,8 @@ function draw_frame() {
 	let elt = node_create('dest', 'Destination');
 	elt.style.marginTop = '10px';
 	elt.style.marginLeft = graph.clientWidth - elt.offsetWidth - 15 + 'px';
-	graphsize = [0, 0, graph.clientWidth, graph.clientHeight];
-	graph_resize();
+	graph_measure();
+	graph_resize(...graphsize);
 	
 	let step = (Math.log(20000) - Math.log(20)) / (frequencies.length - 1);
 	for (let i = 0; i < frequencies.length; i++)
