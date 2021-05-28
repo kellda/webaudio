@@ -4,10 +4,11 @@
 let audioctx = new (AudioContext || webkitAudioContext)();
 let graph = document.getElementById('graph');
 let container = graph.firstElementChild, graphsvg = container.firstElementChild;
+let param = document.getElementById('param');
 let dialog = document.getElementById('dialog');
 let mdninfo = document.getElementById('mdninfo');
 let eltdata = new WeakMap(), graphsize, buffers = [];
-let movedata, dialogdata;
+let movedata, dialogdata, elements = new Map();
 let animate = { biquad: new Map(), analy: new Map() };
 let frequencies = new Float32Array(301);
 
@@ -420,7 +421,11 @@ function node_create(type, name) {
 	let elt = document.createElement('fieldset');
 	let node = desc.create ? desc.create(audioctx, elt) : audioctx['create' + desc.name]();
 	
-	let html = ['<legend><input type="text" value="', type, '"/></legend><div>'];
+	let id = 1;
+	while (elements.has(type + id)) id++;
+	id = type + id;
+	
+	let html = ['<legend><input type="text" value="', id, '"/></legend><div>'];
 	
 	if (desc.inputs == 1)
 		html.push('<img src="icons.svg#connect" />');
@@ -447,7 +452,7 @@ function node_create(type, name) {
 		html.push('<img src="icons.svg#none" data-type="settings" />');
 	else if (node instanceof AudioScheduledSourceNode)
 		html.push('<img src="icons.svg#play" data-type="start" />');
-
+	
 	html.push('</div>');
 	
 	for (let param in desc.audioparams) {
@@ -489,6 +494,7 @@ function node_create(type, name) {
 	}
 	
 	elt.innerHTML = html.join('');
+	elt.dataset.name = id;
 	container.appendChild(elt);
 	
 	let data = { node: node, paths: new Set(), desc: desc };
@@ -512,6 +518,7 @@ function node_create(type, name) {
 			}
 	}
 	eltdata.set(elt, data);
+	elements.set(id, elt);
 	
 	return elt;
 }
@@ -674,6 +681,7 @@ graph.addEventListener('click', function node_click(event) {
 			if (data.desc.delete)
 				data.desc.delete(data.node);
 			container.removeChild(elt);
+			elements.delete(elt.dataset.name);
 			break;
 		case 'settings':
 			dialog_make(
@@ -717,7 +725,20 @@ graph.addEventListener('input', function node_input(event) {
 	let tag = event.target.nodeName.toLowerCase();
 	if (tag != 'input' && tag != 'select') return;
 	let elt = event.target.parentNode.parentNode;
-	if (elt.nodeName.toLowerCase() == 'fieldset') return;
+	if (elt.nodeName.toLowerCase() == 'fieldset') {
+		let name = event.target.value;
+		if (name == elt.dataset.name)
+			event.target.style.borderColor = null;
+		else if (elements.has(name))
+			event.target.style.borderColor = "#f00";
+		else {
+			event.target.style.borderColor = null;
+			elements.set(name, elt);
+			elements.delete(elt.dataset.name);
+			elt.dataset.name = name;
+		}
+		return;
+	}
 	let param = elt.dataset.param;
 	let node = eltdata.get(elt.parentNode).node;
 	if (node[param] instanceof AudioParam)
