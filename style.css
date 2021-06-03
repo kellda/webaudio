@@ -16,6 +16,10 @@ input:not([type=checkbox]):not([type=file]) {
 	width: 7em;
 }
 
+input:not([type=checkbox]):not([type=file]).small {
+	width: 3em;
+}
+
 img {
 	width: 1em;
 	cursor: pointer;
@@ -153,7 +157,8 @@ textarea {
 }
 
 #param svg {
-	height: 1em;
+	height: 2em;
+	width: 100%;
 }
 
 #dialog {

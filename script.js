@@ -66,6 +66,26 @@ function dialog_make(name, elements, settings) {
 
 dialog.firstElementChild.addEventListener('submit', function dialog_submit(event) {
 	event.preventDefault();
+	if (dialogdata.type == 'param') {
+		let elts = dialog.firstElementChild.children;
+		let points = [];
+		let range = [-Infinity, Infinity, -Infinity];
+		for (let elt of elts) {
+			if (elt.firstElementChild.type != 'number') continue;
+			let point = [+elt.children[0].value, elt.children[1].value, +elt.children[2].value,
+				+elt.children[3].value];
+			if (point[0] > range[0]) range[0] = point[0];
+			if (point[2] < range[1]) range[1] = point[2];
+			if (point[2] > range[2]) range[2] = point[2];
+			points.push(point);
+		}
+		points.sort((a, b) => a[0] - b[0]);
+		dialogdata.data.points = points;
+		dialogdata.data.range = range;
+		param_draw(dialogdata.elt, dialogdata.data);
+		dialog.style.display = 'none';
+		return;
+	}
 	let elements = dialogdata.data.desc.settings.elements;
 	let settings = dialogdata.data.settings;
 	let labels = dialog.firstElementChild.children;
@@ -186,18 +206,37 @@ dialog.firstElementChild.addEventListener('click', function dialog_click(event) 
 			id: index
 		};
 		break;
+	case 'new':
+		let types = ['value', 'linear', 'exponential', 'target'];
+		let point = document.createElement('div');
+		let html = ['<input type="number" step="any" required class="small">s: <select>'];
+		for (let t of types)
+			html.push('<option>', t, '</option>');
+		html.push('</select> to <input type="number" step="any" required>',
+			'<input type="number" step="any" class="small">',
+			'<img src="icons.svg#delete" data-type="delete" />');
+		point.innerHTML = html.join('');
+		elt.parentNode.insertBefore(point, elt);
+		break;
 	case 'copy':
 		buffers.push({ ...buffers[index], used: new Set() });
 		elt.parentNode.insertBefore(elt.cloneNode(true), elt.parentNode.lastElementChild);
 		break;
 	case 'delete':
-		for (let use of buffers[index].used) {
-			let data = eltdata.get(use);
-			data.settings[0] = { buffer: null, type: 'none' };
-			data.desc.settings.apply(use, data.node, data.settings);
+		switch (dialogdata.type) {
+		case 'buffer':
+			for (let use of buffers[index].used) {
+				let data = eltdata.get(use);
+				data.settings[0] = { buffer: null, type: 'none' };
+				data.desc.settings.apply(use, data.node, data.settings);
+			}
+			buffers.splice(index, 1);
+			elt.parentNode.removeChild(elt);
+			break;
+		case 'param':
+			elt.parentNode.removeChild(elt);
+			break;
 		}
-		buffers.splice(index, 1);
-		elt.parentNode.removeChild(elt);
 		break;
 	case 'raw':
 	case 'file':
@@ -792,6 +831,133 @@ function draw_frame() {
 		}
 	}
 
+}
+
+/* Audio params ***********************************************************************************/
+param.addEventListener('click', function param_click(event) {
+	switch (event.target.nodeName.toLowerCase()) {
+	case 'button':
+		let div = document.createElement('div');
+		div.innerHTML = '<select><option default hidden>Choose node</option></select>' +
+			'<select></select><img src="icons.svg#delete" data-type="delete">';
+		param.appendChild(div);
+		let svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+		let path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+		svg.appendChild(path);
+		param.appendChild(svg);
+		eltdata.set(svg, { points: [], range: [-Infinity, Infinity, -Infinity] });
+		break;
+	case 'img':
+		let elt = event.target.parentNode.parentNode;
+		switch (event.target.dataset.type) {
+		case 'start':
+			let start = audioctx.currentTime;
+			for (let elt of param.children) {
+				if (elt.nodeName.toLowerCase() != 'svg') continue;
+				let names = elt.previousElementSibling.children;
+				let data = eltdata.get(elements.get(names[0].value));
+				if (!data || !names[1].value) continue;
+				let points = eltdata.get(elt).points;
+				let audioparam = data.node[names[1].value];
+				for (let p of points)
+					switch (p[1]) {
+					case 'value':
+						audioparam.setValueAtTime(p[2], start + p[0]);
+						break;
+					case 'linear':
+						audioparam.linearRampToValueAtTime(p[2], start + p[0]);
+						break;
+					case 'exponential':
+						audioparam.exponentialRampToValueAtTime(p[2], start + p[0]);
+						break;
+					case 'target':
+						audioparam.setTargetAtTime(p[2], start + p[0], p[3]);
+						break;
+					}
+			}
+			break;
+		case 'delete':
+			param.removeChild(event.target.parentNode.nextElementSibling);
+			param.removeChild(event.target.parentNode);
+			break;
+		}
+		break;
+	case 'svg':
+		let data = eltdata.get(event.target);
+		let types = ['value', 'linear', 'exponential', 'target'];
+		let html = ['<div>Audio Timeline<img src="icons.svg#close" data-type="close" /></div>'];
+		for (let p of data.points) {
+			html.push('<div><input type="number" step="any" value="', p[0],
+				'" required class="small">s: <select>');
+			for (let t of types)
+				html.push(t == p[1] ? '<option selected>' : '<option>', t, '</option>');
+			html.push('</select> to <input type="number" step="any" value="', p[2],'" required>',
+				'<input type="number" step="any" value="', p[3], '" class="small">',
+				'<img src="icons.svg#delete" data-type="delete" /></div>');
+		}
+		html.push('<div><input type="button" value="Add point" data-type="new" />',
+			'<input type="submit" value="Apply">',
+			'<input type="button" value="Cancel" data-type="close"></div>');
+		
+		dialog.firstElementChild.innerHTML = html.join('');
+		dialog.style.display = 'flex';
+		dialogdata = { type: 'param', data: data, elt: event.target };
+		break;
+	}
+});
+
+param.addEventListener('focusin', function param_focus(event) {
+	if (event.target.nodeName.toLowerCase() != 'select') return;
+	if (event.target.nextElementSibling.nodeName.toLowerCase() != 'select') return;
+	let value = event.target.value;
+	let html = [];
+	for (let e of elements.keys())
+		html.push(e == value ? '<option selected>' : '<option>', e, '</option>');
+	event.target.innerHTML = html.join('');
+});
+
+param.addEventListener('input', function param_input(event) {
+	if (event.target.nodeName.toLowerCase() != 'select') return;
+	let next = event.target.nextElementSibling;
+	if (next.nodeName.toLowerCase() != 'select') return;
+	let data = eltdata.get(elements.get(event.target.value));
+	let html = ['<option hidden>Choose param</option>'];
+	for (let p in data.desc.audioparams) html.push('<option>', p, '</option>');
+	next.innerHTML = html.join('');
+});
+
+function param_draw(elt, data) {
+	let param = elt.previousElementSibling.children;
+	let paramdata = eltdata.get(elements.get(param[0].value));
+	let first = 0;
+	if (paramdata && paramdata.node[param[1].value])
+		first = paramdata.node[param[1].value].value;
+	let map = val => (elt.clientHeight - 8) * (data.range[2] - val) / (data.range[2] - data.range[1]);
+	let time = t => 100 * t;
+	let d = ['M0,', map(first)];
+	
+	for (let i in data.points) {
+		let p = data.points[i];
+		switch (p[1]) {
+		case 'value':
+			d.push('H', time(p[0]), 'V', map(p[2]));
+			break;
+		case 'linear':
+			d.push('L', time(p[0]), ',', map(p[2]));
+			break;
+		case 'exponential':
+			let prev = i == 0 ? [0, '', first] : data.points[i - 1];
+			d.push('Q', time((prev[0] + p[0]) / 2), ',', map(Math.min(prev[2], p[2])), ',',
+				time(p[0]), ',', map(p[2]));
+			break;
+		case 'target':
+			let next = i == data.points.length - 1 ? p[0] + 5 * p[3] : data.points[+i + 1][0];
+			d.push('H', time(p[0]), 'Q', time(p[0] + p[3]), ',', map(p[2]), ',',
+				time(next), ',', map(p[2]));
+			break;
+		}
+	}
+	elt.firstElementChild.setAttribute('d', d.join(''));
 }
 
 /* Initialisation *********************************************************************************/
