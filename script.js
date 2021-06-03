@@ -698,7 +698,7 @@ graph.addEventListener('click', function node_click(event) {
 				
 				let xhr = new XMLHttpRequest();
 				xhr.onload = () => {
-					data.desc.info.text = xhr.response.querySelector('.article > div > :not(:empty)');
+					data.desc.info.text = xhr.response.querySelector('.main-page-content > div > :not(:empty)');
 					data.desc.info.style = xhr.response.querySelector('link[rel="stylesheet"]');
 					mdninfo_show(data.desc.info);
 				};
@@ -797,7 +797,7 @@ function draw_frame() {
 <html>
 	<head>
 		<base href="https://developer.mozilla.org/" target="_blank" />
-		<link rel="stylesheet" href="data:text/css,.article{padding:24px;max-width:85ch;font-family:sans-serif}" />
+		<link rel="stylesheet" href="data:text/css,.main-page-content{padding:24px;max-width:85ch;font-family:sans-serif}" />
 		<style>
 @font-face {
 	font-display: swap;
@@ -837,14 +837,15 @@ img {
 	margin: 0.4em;
 }
 
-.article {
+.main-page-content {
 	background: #fff;
 	margin: auto;
+	padding-top: 24px;
 }
 		</style>
 	</head>
 	<body>
-		<article class="article">
+		<article class="main-page-content">
 			<h2>name</h2>
 			<p></p>
 			<p><a>Read more …</a></p>

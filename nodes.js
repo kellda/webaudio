@@ -450,10 +450,10 @@ const nodes = {
 				for (let paths of eltdata.get(elt).paths) {
 					let data = eltdata.get(paths[1]);
 					connection_draw(paths,
-						data.start.offsetLeft + data.start.offsetWidth / 2,
-						data.start.offsetTop + data.start.offsetHeight / 2,
-						data.end.offsetLeft + data.end.offsetWidth / 2,
-						data.end.offsetTop + data.end.offsetHeight / 2,
+						data.start.offsetLeft + data.start.offsetWidth / 2 - container.offsetLeft,
+						data.start.offsetTop + data.start.offsetHeight / 2 - container.offsetTop,
+						data.end.offsetLeft + data.end.offsetWidth / 2 - container.offsetLeft,
+						data.end.offsetTop + data.end.offsetHeight / 2 - container.offsetTop,
 					);
 				}
 			},
