@@ -209,7 +209,7 @@ dialog.firstElementChild.addEventListener('click', function dialog_click(event) 
 	case 'new':
 		let types = ['value', 'linear', 'exponential', 'target'];
 		let point = document.createElement('div');
-		let html = ['<input type="number" step="any" required class="small">s: <select>'];
+		let html = ['<input type="number" step="any" required class="small">: <select>'];
 		for (let t of types)
 			html.push('<option>', t, '</option>');
 		html.push('</select> to <input type="number" step="any" required>',
@@ -565,7 +565,7 @@ function node_create(type, name) {
 function node_reload(data, params, running) {
 	let node = AudioContext.prototype['create' + data.desc.name].apply(audioctx, params);
 	for (let param in data.desc.audioparams)
-		node[param].value = data.node[param].value;
+		node[param].setValueAtTime(0, data.node[param].value);
 	for (let param in data.desc.continuousparams)
 		node[param] = data.node[param];
 	for (let param in data.desc.discreteparams)
@@ -781,7 +781,7 @@ graph.addEventListener('input', function node_input(event) {
 	let param = elt.dataset.param;
 	let node = eltdata.get(elt.parentNode).node;
 	if (node[param] instanceof AudioParam)
-		node[param].value = event.target.value;
+		node[param].setValueAtTime(event.target.value, 0);
 	else if (event.target.type == 'checkbox')
 		node[param] = event.target.checked;
 	else
@@ -851,6 +851,7 @@ param.addEventListener('click', function param_click(event) {
 		let elt = event.target.parentNode.parentNode;
 		switch (event.target.dataset.type) {
 		case 'start':
+			let bps = 60 / event.target.previousElementSibling.previousElementSibling.value;
 			let start = audioctx.currentTime;
 			for (let elt of param.children) {
 				if (elt.nodeName.toLowerCase() != 'svg') continue;
@@ -862,18 +863,28 @@ param.addEventListener('click', function param_click(event) {
 				for (let p of points)
 					switch (p[1]) {
 					case 'value':
-						audioparam.setValueAtTime(p[2], start + p[0]);
+						audioparam.setValueAtTime(p[2] * bps, start + p[0] * bps);
 						break;
 					case 'linear':
-						audioparam.linearRampToValueAtTime(p[2], start + p[0]);
+						audioparam.linearRampToValueAtTime(p[2] * bps, start + p[0] * bps);
 						break;
 					case 'exponential':
-						audioparam.exponentialRampToValueAtTime(p[2], start + p[0]);
+						audioparam.exponentialRampToValueAtTime(p[2] * bps, start + p[0] * bps);
 						break;
 					case 'target':
-						audioparam.setTargetAtTime(p[2], start + p[0], p[3]);
+						audioparam.setTargetAtTime(p[2] * bps, start + p[0] * bps, p[3] * bps);
+						audioparam.setTargetAtTime(p[2] * bps, start + p[0] * bps, p[3] * bps);
 						break;
 					}
+			}
+			break;
+		case 'stop':
+			for (let elt of param.children) {
+				if (elt.nodeName.toLowerCase() != 'svg') continue;
+				let names = elt.previousElementSibling.children;
+				let data = eltdata.get(elements.get(names[0].value));
+				if (!data || !names[1].value) continue;
+				data.node[names[1].value].cancelScheduledValues(0);
 			}
 			break;
 		case 'delete':

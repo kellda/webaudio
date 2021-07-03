@@ -52,7 +52,12 @@ window.addEventListener('unhandledrejection', function (event) {
 		</div>
 		<div id="log"></div>
 		<div id="param" style="max-height: 10em">
-			<div><button>Add param</button><img src="icons.svg#play" data-type="start"></div>
+			<div>
+				<button>Add param</button>
+				<input type="number" value="60" min="0" step="any" class="small" /> bpm
+				<img src="icons.svg#stop" data-type="stop">
+				<img src="icons.svg#play" data-type="start">
+			</div>
 			<div></div>
 		</div>
 		<div id="dialog">
