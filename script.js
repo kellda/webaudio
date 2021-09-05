@@ -9,7 +9,7 @@ let dialog = document.getElementById('dialog');
 let mdninfo = document.getElementById('mdninfo');
 let eltdata = new WeakMap(), graphsize, buffers = [];
 let movedata, dialogdata, elements = new Map();
-let animate = { filter: new Map(), analy: new Map() };
+let animate = { filter: new Map(), compr: new Map(), analy: new Map() };
 let frequencies = new Float32Array(301);
 
 /* Settings modal dialog **************************************************************************/
@@ -300,6 +300,15 @@ function connection_create(event) {
 	);
 }
 
+function connection_redraw(paths, data) {
+	connection_draw(paths,
+		data.start.offsetLeft + data.start.offsetWidth / 2 - container.offsetLeft,
+		data.start.offsetTop + data.start.offsetHeight / 2 - container.offsetTop,
+		data.end.offsetLeft + data.end.offsetWidth / 2 - container.offsetLeft,
+		data.end.offsetTop + data.end.offsetHeight / 2 - container.offsetTop,
+	);
+}
+
 function connection_make() {
 	if (event.target.nodeName.toLowerCase() != 'img' || event.target.dataset.type) return false;
 
@@ -322,12 +331,7 @@ function connection_make() {
 		if (data.start == start && data.end == end) return false;
 	}
 	eltdata.set(movedata.paths[1], { start: start, end: end, paths: movedata.paths });
-	connection_draw(movedata.paths,
-		start.offsetLeft + start.offsetWidth / 2 - container.offsetLeft,
-		start.offsetTop + start.offsetHeight / 2 - container.offsetTop,
-		end.offsetLeft + end.offsetWidth / 2 - container.offsetLeft,
-		end.offsetTop + end.offsetHeight / 2 - container.offsetTop,
-	);
+	connection_redraw(movedata.paths, { start: start, end: end });
 	
 	let startdata = eltdata.get(start.parentNode.parentNode);
 	if (!startdata) {
@@ -670,15 +674,7 @@ function node_drag(event) {
 	movedata.elt.style.marginLeft = left + 'px';
 	movedata.elt.style.marginTop = top + 'px';
 	
-	for (let paths of movedata.paths) {
-		let data = eltdata.get(paths[1]);
-		connection_draw(paths,
-			data.start.offsetLeft + data.start.offsetWidth / 2 - container.offsetLeft,
-			data.start.offsetTop + data.start.offsetHeight / 2 - container.offsetTop,
-			data.end.offsetLeft + data.end.offsetWidth / 2 - container.offsetLeft,
-			data.end.offsetTop + data.end.offsetHeight / 2 - container.offsetTop,
-		);
-	}
+	movedata.paths.forEach(paths => connection_redraw(paths, eltdata.get(paths[1])));
 }
 
 graph.addEventListener('click', function node_click(event) {
@@ -812,6 +808,10 @@ function draw_frame() {
 				path.push(i, 75 - data[3].phase[i] * 75 / Math.PI);
 			data[4][2].firstElementChild.setAttribute('d', path.join(' '));
 		}
+	}
+
+	for (let [node, data] of animate.compr.entries()) {
+		data[1].firstElementChild.firstElementChild.value = node.reduction + " dB";
 	}
 
 	for (let [node, data] of animate.analy.entries()) {

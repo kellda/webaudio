@@ -112,10 +112,6 @@ textarea {
 	text-align: center;
 }
 
-#container span:first-child, #container label:first-child {
-	margin-left: 0.25em;
-}
-
 #container img[src$="#connect"], #container .multiple {
 	float: right;
 	margin-right: -1.25em;

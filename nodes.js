@@ -296,18 +296,10 @@ const nodes = {
 				for (let i = 0; i < 3; i++)
 					settings[4][i].style.display = settings[i] ? '' : 'none';
 				// Size may have changed: redraw paths
-				for (let paths of eltdata.get(elt).paths) {
-					let data = eltdata.get(paths[1]);
-					connection_draw(paths,
-						data.start.offsetLeft + data.start.offsetWidth / 2,
-						data.start.offsetTop + data.start.offsetHeight / 2,
-						data.end.offsetLeft + data.end.offsetWidth / 2,
-						data.end.offsetTop + data.end.offsetHeight / 2,
-					);
-				}
+				movedata.paths.forEach(paths => connection_redraw(paths, eltdata.get(paths[1])));
 			},
 		},
-		delete: node => animate.biquad.delete(node),
+		delete: node => animate.filter.delete(node),
 	},
 	iir: {
 		name: 'IIRFilter',
@@ -339,15 +331,7 @@ const nodes = {
 				for (let i = 0; i < 3; i++)
 					settings[6][i].style.display = settings[i + 2] ? '' : 'none';
 				// Size may have changed: redraw paths
-				for (let paths of eltdata.get(elt).paths) {
-					let data = eltdata.get(paths[1]);
-					connection_draw(paths,
-						data.start.offsetLeft + data.start.offsetWidth / 2,
-						data.start.offsetTop + data.start.offsetHeight / 2,
-						data.end.offsetLeft + data.end.offsetWidth / 2,
-						data.end.offsetTop + data.end.offsetHeight / 2,
-					);
-				}
+				movedata.paths.forEach(paths => connection_redraw(paths, eltdata.get(paths[1])));
 				return [settings[0].split(','), settings[1].split(',')];
 			},
 			reload: (oldnode, newnode, settings) => {
@@ -357,6 +341,7 @@ const nodes = {
 			},
 		},
 		create: ctx => ctx.createIIRFilter([1], [1]),
+		delete: node => animate.filter.delete(node),
 	},
 	compr: {
 		name: 'DynamicsCompressor',
@@ -369,7 +354,30 @@ const nodes = {
 			attack: {},
 			release: {},
 		},
-		todo: { reduction: 'read' },
+		settings: {
+			elements: [
+				{ label: 'Show reduction', type: 'checkbox' },
+			],
+			apply: (elt, node, settings) => {
+				// Initialize
+				if(!settings[1]) {
+					settings[1] = document.createElement('div');
+					settings[1].innerHTML = '<label>reduction: <input disabled style="color:#000"></label>';
+					elt.appendChild(settings[1]);
+				}
+				// Register visualisations
+				if (settings[0]) {
+					animate.compr.set(node, settings);
+					settings[1].style.display = '';
+				} else {
+					animate.compr.delete(node);
+					settings[1].style.display = 'none';
+				}
+				// Size may have changed: redraw paths
+				movedata.paths.forEach(paths => connection_redraw(paths, eltdata.get(paths[1])));
+			},
+		},
+		delete: node => animate.compr.delete(node),
 	},
 	conv: {
 		name: 'Convolver',
@@ -482,15 +490,7 @@ const nodes = {
 				for (let i = 0; i < 2; i++)
 					settings[3][i].style.display = settings[i] ? '' : 'none';
 				// Size may have changed: redraw paths
-				for (let paths of eltdata.get(elt).paths) {
-					let data = eltdata.get(paths[1]);
-					connection_draw(paths,
-						data.start.offsetLeft + data.start.offsetWidth / 2 - container.offsetLeft,
-						data.start.offsetTop + data.start.offsetHeight / 2 - container.offsetTop,
-						data.end.offsetLeft + data.end.offsetWidth / 2 - container.offsetLeft,
-						data.end.offsetTop + data.end.offsetHeight / 2 - container.offsetTop,
-					);
-				}
+				movedata.paths.forEach(paths => connection_redraw(paths, eltdata.get(paths[1])));
 			},
 		},
 		delete: node => animate.analy.delete(node),
