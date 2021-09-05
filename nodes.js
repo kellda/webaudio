@@ -290,9 +290,9 @@ const nodes = {
 				}
 				// Register visualisations
 				if (settings[0] || settings[1] || settings[2])
-					animate.biquad.set(node, settings);
+					animate.filter.set(node, settings);
 				else
-					animate.biquad.delete(node);
+					animate.filter.delete(node);
 				for (let i = 0; i < 3; i++)
 					settings[4][i].style.display = settings[i] ? '' : 'none';
 				// Size may have changed: redraw paths
@@ -317,9 +317,44 @@ const nodes = {
 			elements: [
 				{ label: 'Feedforward', type: 'textarea'},
 				{ label: 'Feedback', type: 'textarea'},
-				{ label: 'Show frequency response', type: 'checkbox', todo: true },
+				{ label: 'Show linear magnitude response', type: 'checkbox' },
+				{ label: 'Show logarithmic magnitude response', type: 'checkbox' },
+				{ label: 'Show frequency phase response', type: 'checkbox' },
 			],
-			apply: (elt, node, settings) => [settings[0].split(','), settings[1].split(',')],
+			apply: (elt, node, settings) => {
+				// Initialize
+				if(!settings[5]) {
+					settings[5] = {
+						magn: new Float32Array(frequencies.length),
+						phase: new Float32Array(frequencies.length),
+					}
+					let svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+					svg.innerHTML = '<path/>';
+					settings[6] = [svg, svg.cloneNode(true), svg.cloneNode(true)];
+					settings[6].forEach(svg => elt.appendChild(svg));
+				}
+				// Unregister visualisations for the node to be replaced
+				animate.filter.delete(node);
+				// Update visualisations visibility
+				for (let i = 0; i < 3; i++)
+					settings[6][i].style.display = settings[i + 2] ? '' : 'none';
+				// Size may have changed: redraw paths
+				for (let paths of eltdata.get(elt).paths) {
+					let data = eltdata.get(paths[1]);
+					connection_draw(paths,
+						data.start.offsetLeft + data.start.offsetWidth / 2,
+						data.start.offsetTop + data.start.offsetHeight / 2,
+						data.end.offsetLeft + data.end.offsetWidth / 2,
+						data.end.offsetTop + data.end.offsetHeight / 2,
+					);
+				}
+				return [settings[0].split(','), settings[1].split(',')];
+			},
+			reload: (oldnode, newnode, settings) => {
+				// Register visualisations with the new node
+				if (settings[2] || settings[3] || settings[4])
+					animate.filter.set(newnode, settings.slice(2));
+			},
 		},
 		create: ctx => ctx.createIIRFilter([1], [1]),
 	},

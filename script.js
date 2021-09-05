@@ -9,7 +9,7 @@ let dialog = document.getElementById('dialog');
 let mdninfo = document.getElementById('mdninfo');
 let eltdata = new WeakMap(), graphsize, buffers = [];
 let movedata, dialogdata, elements = new Map();
-let animate = { biquad: new Map(), analy: new Map() };
+let animate = { filter: new Map(), analy: new Map() };
 let frequencies = new Float32Array(301);
 
 /* Settings modal dialog **************************************************************************/
@@ -792,7 +792,7 @@ graph.addEventListener('input', function node_input(event) {
 function draw_frame() {
 	requestAnimationFrame(draw_frame);
 	
-	for (let [node, data] of animate.biquad.entries()) {
+	for (let [node, data] of animate.filter.entries()) {
 		node.getFrequencyResponse(frequencies, data[3].magn, data[3].phase);
 		if (data[0]) {
 			let path = ['M'];
