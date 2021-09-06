@@ -197,7 +197,34 @@ const nodes = {
 		name: 'MediaStreamDestination',
 		inputs: 1,
 		outputs: 0,
-		todo: { stream: MediaStream },
+		settings: {
+			elements: [
+				{ label: 'MIME type', type: 'text', optional: true },
+				{ label: 'Bitrate', type: 'number', optional: true },
+			],
+			apply: (elt, node, settings) => {
+				settings[2] && settings[2].stop();
+				
+				// Create new node
+				let params = {}
+				if (settings[0])
+					params.mimeType = settings[0];
+				if (settings[1])
+					params.audioBitsPerSecond = settings[1]
+				settings[2] = new MediaRecorder(node.stream, params);
+
+				// Update UI and save record
+				let imgs = elt.children[1].children;
+				settings[2].ondataavailable = evt => {
+					imgs[6].src = imgs[6].src.replace(/#.*$/, '#rec');
+					imgs[6].dataset.type = 'recstart';
+					imgs[5].src = imgs[5].src.replace(/#.*$/, '#none');
+					imgs[5].dataset.type = '';
+					
+					open(URL.createObjectURL(evt.data));
+				}
+			},
+		}
 	},
 	gain: {
 		name: 'Gain',

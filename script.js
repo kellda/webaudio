@@ -47,13 +47,15 @@ function dialog_make(name, elements, settings) {
 			break;
 		case 'number':
 			html.push('<input type="number" step="any" min="', elements[i].min,
-				'" max="', elements[i].max, '" value="', settings[i], '" required >');
+				'" max="', elements[i].max, '" value="', settings[i], '"',
+				elements[i].optional ? '' : ' required', ' />');
 			break;
 		case 'file':
 			html.push('<input type="', elements[i].type, '" accept="audio/*" required />');
 			break;
 		default:
-			html.push('<input type="', elements[i].type, '" value="', settings[i], '" required />');
+			html.push('<input type="', elements[i].type, '" value="', settings[i], '"',
+				elements[i].optional ? '' : ' required', ' />');
 			break;
 		}
 		html.push('</label>');
@@ -495,6 +497,9 @@ function node_create(type, name) {
 		html.push('<img src="icons.svg#none" data-type="settings" />');
 	else if (node instanceof AudioScheduledSourceNode)
 		html.push('<img src="icons.svg#play" data-type="start" />');
+	if (node instanceof MediaStreamAudioDestinationNode)
+		html.push('<img src="icons.svg#none" data-type="" />',
+			'<img src="icons.svg#rec" data-type="recstart" />');
 	
 	html.push('</div>');
 	
@@ -546,9 +551,9 @@ function node_create(type, name) {
 	if (node instanceof AudioScheduledSourceNode) {
 		let img = elt.children[1].lastElementChild;
 		if (node instanceof AudioBufferSourceNode)
-			node.onended = function() {
+			node.onended = evt => {
 				node_reload(data, []);
-				if (this.buffer != null) {
+				if (evt.target.buffer != null) {
 					img.src = img.src.replace(/#.*$/, '#play');
 					img.dataset.type = 'start';
 				}
@@ -705,6 +710,29 @@ graph.addEventListener('click', function node_click(event) {
 			audioctx.resume();
 			event.target.src = event.target.src.replace(/#.*$/, '#pause');
 			event.target.dataset.type = 'suspend';
+			break;
+		case 'recstart':
+			if (!data.settings[2])
+				data.desc.settings.apply(elt, data.node, data.settings);
+			data.settings[2].start();
+			event.target.src = event.target.src.replace(/#.*$/, '#stop');
+			event.target.dataset.type = 'recstop';
+			let prev = event.target.previousElementSibling;
+			prev.src = prev.src.replace(/#.*$/, '#pause');
+			prev.dataset.type = 'recpause';
+			break;
+		case 'recstop':
+			data.settings[2].stop();
+			break;
+		case 'recpause':
+			data.settings[2].pause();
+			event.target.src = event.target.src.replace(/#.*$/, '#play');
+			event.target.dataset.type = 'recplay';
+			break;
+		case 'recplay':
+			data.settings[2].resume();
+			event.target.src = event.target.src.replace(/#.*$/, '#pause');
+			event.target.dataset.type = 'recpause';
 			break;
 		case 'delete':
 			for (let paths of data.paths)
