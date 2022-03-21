@@ -265,6 +265,7 @@ function mdninfo_show(info) {
 	article.children[2].firstElementChild.href = info.url;
 	article.children[3].firstElementChild.textContent = info.name;
 	article.children[3].firstElementChild.href = info.url;
+	article.children[3].children[1].href = info.url + '/contributors.txt';
 	mdninfo.style.display = 'block';
 }
 
@@ -1014,72 +1015,54 @@ function param_draw(elt, data) {
 	
 	let close = document.createElement('img');
 	close.src = document.baseURI.replace(/\/[^/]*(?:\?.*)?(?:#.*)?$/, '/icons.svg#close');
+	close.id = 'close-img';
 	close.addEventListener('click', () => mdninfo.style.display = 'none');
 	mdninfo.onload = () =>
 		mdninfo.contentDocument.body.firstElementChild.firstElementChild.appendChild(close);
-	
+
 	mdninfo.srcdoc = `
 <!DOCTYPE html>
 <html>
 	<head>
 		<base href="https://developer.mozilla.org/" target="_blank" />
-		<link rel="stylesheet" href="data:text/css,.main-page-content{padding:24px;max-width:85ch;font-family:sans-serif}" />
+		<link rel="stylesheet" href="data:text/css,h1{font-size:2.25rem}body{font-family:Inter,sans-serif}"/>
 		<style>
 @font-face {
-	font-display: swap;
-	font-family: zillaslab;
-	font-style: normal;
-	font-weight: 700;
-	src:
-url(https://api.allorigins.win/raw?url=https://developer.mozilla.org/static/media/\
-ZillaSlab-Bold.subset.0beac26b.woff2) format("woff2"),
-url(https://api.allorigins.win/raw?url=https://developer.mozilla.org/static/media/\
-ZillaSlab-Bold.subset.72026b3c.woff) format("woff")
-}
-
-@font-face {
-	font-display: swap;
-	font-family: zillaslab;
-	font-style: normal;
-	font-weight: 400;
-	src:
-url(https://api.allorigins.win/raw?url=https://developer.mozilla.org/static/media/\
-ZillaSlab-Regular.subset.ce3a756d.woff2) format("woff2"),
-url(https://api.allorigins.win/raw?url=https://developer.mozilla.org/static/media/\
-ZillaSlab-Regular.subset.7e4c05c9.woff) format("woff")
-}
-
-html {
-	background: #000a;
+	font-family:"Inter";
+	src:url(https://api.allorigins.win/raw?url=https://developer.mozilla.org/static/media/Inter.var.c2fe3cb2.woff2) format("woff2 supports variations"),
+		url(https://api.allorigins.win/raw?url=https://developer.mozilla.org/static/media/Inter.var.c2fe3cb2.woff2) format("woff2-variations");
+	font-weight:1 999;
+	font-stretch:75% 100%;
+	font-style:oblique 0deg 20deg;
+	font-display:swap;
 }
 
 body {
-	display: flex;
+	background-color: #000a;
 }
 
-img {
+#close-img {
 	width: 0.5em;
 	float: right;
-	margin: 0.4em;
+	margin: 0.2em;
+	border: none !important;
 }
 
 .main-page-content {
 	background: #fff;
-	margin: auto;
-	padding-top: 24px;
+	max-width: 80ch;
+	margin: 0 auto;
+	padding: 2rem;
 }
 		</style>
 	</head>
-	<body>
+	<body class="light">
 		<article class="main-page-content">
-			<h2>name</h2>
+			<h1>name</h1>
 			<p></p>
 			<p><a>Read more …</a></p>
-			<p><a>name</a> by
-			<a href="/en-US/docs/MDN/About/contributors.txt">Mozilla Contributors</a>
-			is licensed under
-			<a href="https://creativecommons.org/licenses/by-sa/2.5/" rel="noopener">
-			CC-BY-SA 2.5</a>.</p>
+			<p><a>name</a> by <a>Mozilla Contributors</a> is licensed under
+			<a href="https://creativecommons.org/licenses/by-sa/2.5/" rel="noopener">CC-BY-SA 2.5</a>.</p>
 		</article>
 	</body>
 </html>`;
