@@ -1,197 +1,197 @@
 html, body {
-	height: 100%;
+    height: 100%;
 }
 
 body {
-	font-family: sans-serif;
-	margin: 0;
-	display: grid;
-	grid-template-rows: 1fr auto auto;
-	grid-template-columns: auto 1fr;
-	overflow: hidden;
-	user-select: none;
+    font-family: sans-serif;
+    margin: 0;
+    display: grid;
+    grid-template-rows: 1fr auto auto;
+    grid-template-columns: auto 1fr;
+    overflow: hidden;
+    user-select: none;
 }
 
 input:not([type=checkbox]):not([type=file]) {
-	width: 7em;
+    width: 7em;
 }
 
 input:not([type=checkbox]):not([type=file]).small {
-	width: 3em;
+    width: 3em;
 }
 
 img {
-	width: 1em;
-	cursor: pointer;
+    width: 1em;
+    cursor: pointer;
 }
 
 img, label input, label select {
-	float: right;
-	margin-left: 0.5em;
+    float: right;
+    margin-left: 0.5em;
 }
 
 svg * {
-	fill: none;
-	stroke: #000;
+    fill: none;
+    stroke: #000;
 }
 
 textarea {
-	display: block;
-	height: 1em;
-	width: 100%;
+    display: block;
+    height: 1em;
+    width: 100%;
 }
 
 #menu {
-	border-right: 1px solid black;
-	padding: 8px;
-	background: #fff;
-	overflow: auto;
-	grid-row: 1 / 3;
+    border-right: 1px solid black;
+    padding: 8px;
+    background: #fff;
+    overflow: auto;
+    grid-row: 1 / 3;
 }
 
 #menu button {
-	display: block;
-	width: 100%;
+    display: block;
+    width: 100%;
 }
 
 #graph {
-	overflow: scroll;
+    overflow: scroll;
 }
 
 #container {
-	display: grid;
-	height: 0;
-	width: 0;
+    display: grid;
+    height: 0;
+    width: 0;
 }
 
 #container > svg {
-	grid-area: 1 / 1;
-	z-index: 0;
-	pointer-events: none;
+    grid-area: 1 / 1;
+    z-index: 0;
+    pointer-events: none;
 }
 
 #container > svg * {
-	stroke-width: 0.1em;
-	stroke-linecap: round;
+    stroke-width: 0.1em;
+    stroke-linecap: round;
 }
 
 #container > svg > :nth-child(even) {
-	stroke-width: 0.25em;
+    stroke-width: 0.25em;
 }
 
 #container > svg > :nth-child(even):not(:hover) {
-	opacity: 0;
+    opacity: 0;
 }
 
 #container:not(.connect) > svg * {
-	pointer-events: auto;
+    pointer-events: auto;
 }
 
 #container > fieldset {
-	grid-area: 1/1;
-	width: max-content;
-	height: max-content;
-	background: #fff;
+    grid-area: 1/1;
+    width: max-content;
+    height: max-content;
+    background: #fff;
 }
 
 #container > fieldset > svg {
-	display: block;
-	width: 300px;
-	height: 150px;
-	padding: 8px;
+    display: block;
+    width: 300px;
+    height: 150px;
+    padding: 8px;
 }
 
 #container div, #dialog div, #dialog label {
-	display: block;
-	clear: both;
-	min-height: 1.25em;
+    display: block;
+    clear: both;
+    min-height: 1.25em;
 }
 
 #container div:first-of-type, #dialog form > :first-child {
-	font-weight: bold;
-	text-align: center;
+    font-weight: bold;
+    text-align: center;
 }
 
 #container img[src$="#connect"], #container .multiple {
-	float: right;
-	margin-right: -1.25em;
+    float: right;
+    margin-right: -1.25em;
 }
 
 #container img:first-child, #container .multiple:first-child {
-	float: left;
-	margin: 0 0.25em 0 calc(-1.25em - 1px);
+    float: left;
+    margin: 0 0.25em 0 calc(-1.25em - 1px);
 }
 
 #container .multiple img {
-	display: block;
-	float: none;
-	margin: 0;
+    display: block;
+    float: none;
+    margin: 0;
 }
 
 #param {
-	border-top: 1px solid black;
-	display: grid;
-	grid-template-columns: auto 1fr;
-	grid-auto-rows: min-content;
-	overflow: auto;
-	grid-column: 1 / 3;
+    border-top: 1px solid black;
+    display: grid;
+    grid-template-columns: auto 1fr;
+    grid-auto-rows: min-content;
+    overflow: auto;
+    grid-column: 1 / 3;
 }
 
 #param > * {
-	padding: 4px;
+    padding: 4px;
 }
 
 #param > div {
-	position: sticky;
-	left: 0;
-	border-right: 1px solid black;
-	background: #fff;
+    position: sticky;
+    left: 0;
+    border-right: 1px solid black;
+    background: #fff;
 }
 
 #param > div {
-	
+    
 }
 
 #param svg {
-	height: 2em;
-	width: 100%;
+    height: 2em;
+    width: 100%;
 }
 
 #dialog {
-	display: none;
-	height: 100%;
-	width: 100%;
-	position: fixed;
-	top: 0;
-	left: 0;
-	background: #000a;
+    display: none;
+    height: 100%;
+    width: 100%;
+    position: fixed;
+    top: 0;
+    left: 0;
+    background: #000a;
 }
 
 #dialog form {
-	background: #fff;
-	margin: auto;
-	padding: 8px;
+    background: #fff;
+    margin: auto;
+    padding: 8px;
 }
 
 #dialog form > :last-child {
-	display: flex;
-	flex-wrap: wrap;
+    display: flex;
+    flex-wrap: wrap;
 }
 
 #dialog form > :last-child > * {
-	flex: max-content;
+    flex: max-content;
 }
 
 #mdninfo {
-	display: none;
-	height: 100%;
-	width: 100%;
-	position: fixed;
-	top: 0;
-	left: 0;
-	border: none;
+    display: none;
+    height: 100%;
+    width: 100%;
+    position: fixed;
+    top: 0;
+    left: 0;
+    border: none;
 }
 
 #log {
-	color: #f00;
+    color: #f00;
 }
