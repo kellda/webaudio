@@ -1028,9 +1028,9 @@ function param_draw(elt, data) {
         <link rel="stylesheet" href="data:text/css,h1{font-size:2.25rem}body{font-family:Inter,sans-serif}"/>
         <style>
 @font-face {
-    font-family:"Inter";
-    src:url(https://api.allorigins.win/raw?url=https://developer.mozilla.org/static/media/Inter.var.c2fe3cb2.woff2) format("woff2 supports variations"),
-        url(https://api.allorigins.win/raw?url=https://developer.mozilla.org/static/media/Inter.var.c2fe3cb2.woff2) format("woff2-variations");
+    font-family:Inter;
+    src:url(https://api.allorigins.win/raw?url=https://developer.mozilla.org/static/media/Inter.var.c2fe3cb2b7c746f7966a.woff2) format("woff2 supports variations"),
+        url(https://api.allorigins.win/raw?url=https://developer.mozilla.org/static/media/Inter.var.c2fe3cb2b7c746f7966a.woff2) format("woff2-variations");
     font-weight:1 999;
     font-stretch:75% 100%;
     font-style:oblique 0deg 20deg;
@@ -1053,6 +1053,7 @@ body {
     max-width: 80ch;
     margin: 0 auto;
     padding: 2rem;
+    box-sizing: border-box
 }
         </style>
     </head>

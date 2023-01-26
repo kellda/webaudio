@@ -323,7 +323,7 @@ const nodes = {
                 for (let i = 0; i < 3; i++)
                     settings[4][i].style.display = settings[i] ? '' : 'none';
                 // Size may have changed: redraw paths
-                movedata.paths.forEach(paths => connection_redraw(paths, eltdata.get(paths[1])));
+                eltdata.get(elt).paths.forEach(paths => connection_redraw(paths, eltdata.get(paths[1])));
             },
         },
         delete: node => animate.filter.delete(node),
@@ -358,7 +358,7 @@ const nodes = {
                 for (let i = 0; i < 3; i++)
                     settings[6][i].style.display = settings[i + 2] ? '' : 'none';
                 // Size may have changed: redraw paths
-                movedata.paths.forEach(paths => connection_redraw(paths, eltdata.get(paths[1])));
+                eltdata.get(elt).paths.forEach(paths => connection_redraw(paths, eltdata.get(paths[1])));
                 return [settings[0].split(','), settings[1].split(',')];
             },
             reload: (oldnode, newnode, settings) => {
@@ -401,7 +401,7 @@ const nodes = {
                     settings[1].style.display = 'none';
                 }
                 // Size may have changed: redraw paths
-                movedata.paths.forEach(paths => connection_redraw(paths, eltdata.get(paths[1])));
+                eltdata.get(elt).paths.forEach(paths => connection_redraw(paths, eltdata.get(paths[1])));
             },
         },
         delete: node => animate.compr.delete(node),
@@ -517,7 +517,7 @@ const nodes = {
                 for (let i = 0; i < 2; i++)
                     settings[3][i].style.display = settings[i] ? '' : 'none';
                 // Size may have changed: redraw paths
-                movedata.paths.forEach(paths => connection_redraw(paths, eltdata.get(paths[1])));
+                eltdata.get(elt).paths.forEach(paths => connection_redraw(paths, eltdata.get(paths[1])));
             },
         },
         delete: node => animate.analy.delete(node),
