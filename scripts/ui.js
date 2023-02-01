@@ -104,11 +104,28 @@ ui.try_connect = function(event) {
     return true;
 }
 
-ui.click_menu = function(event) {
+ui.menu_click = function(event) {
     switch (event.target.dataset.type) {
     case 'save':
+        let save = new Blob([JSON.stringify(core.save())], { type: 'application/octet-stream' });
+        open(URL.createObjectURL(save));
+        break;
     case 'load':
-        // TODO
+        let file = document.createElement('input');
+        file.type = 'file';
+        file.oninput = () => {
+            core.clear();
+            file.files[0].text().then(text => core.load(JSON.parse(text)));
+        }
+        file.click();
+        break;
+    case 'reset':
+        core.clear();
+        let node = new Node('dest');
+        ui.container.appendChild(node.elt);
+        node.elt.style.marginTop = '10px';
+        node.elt.style.marginLeft = ui.graph.clientWidth - node.elt.offsetWidth - 15 + 'px';
+        ui.resize(...ui.measure());
         break;
     case 'buf':
         let html = ['<div>Audio Buffers<img src="icons.svg#close" data-type="close" /></div>'];
@@ -128,10 +145,9 @@ ui.click_menu = function(event) {
     }
 };
 
-ui.new_node = function(event) {
+ui.node_new = function(event) {
     if (!event.target.dataset.node) return;
     let node = new Node(event.target.dataset.node);
-    ui.container.appendChild(node.elt);
 
     let offset = [
         ui.container.offsetLeft + node.elt.offsetWidth / 2,
@@ -163,7 +179,7 @@ ui.new_node = function(event) {
     }, { once: true });
 };
 
-ui.drag_node = function(event) {
+ui.node_drag = function(event) {
     let elt = event.target;
     if (elt == ui.graph || elt == ui.container || elt.dataset.type) {
         event.preventDefault();
@@ -207,7 +223,7 @@ ui.drag_node = function(event) {
     }
 };
 
-ui.click_node = function(event) {
+ui.node_click = function(event) {
     switch (event.target.nodeName.toLowerCase()) {
     case 'path':
         core.eltdata.get(event.target).delete();
@@ -260,15 +276,7 @@ ui.click_node = function(event) {
             event.target.dataset.type = 'recpause';
             break;
         case 'delete':
-            if (data.elt.children[1].lastElementChild.dataset.type == 'stop') {
-                data.node.onended = null;
-                data.node.stop();
-            }
-            data.paths.forEach(path => path.delete());
-            if (data.desc.delete)
-                data.desc.delete(data.node);
-            ui.container.removeChild(data.elt);
-            core.elements.delete(data.elt.dataset.name);
+            data.delete();
             break;
         case 'settings':
             dialog.make(
@@ -308,7 +316,7 @@ ui.click_node = function(event) {
     }
 };
 
-ui.input_node = function(event) {
+ui.node_input = function(event) {
     let tag = event.target.nodeName.toLowerCase();
     if (tag != 'input' && tag != 'select') return;
     let elt = event.target.parentNode.parentNode;
@@ -336,7 +344,7 @@ ui.input_node = function(event) {
         node[param] = event.target.value;
 };
 
-ui.draw_frame = function () {
+ui.draw_frame = function() {
     requestAnimationFrame(ui.draw_frame);
     
     for (let [node, data] of animate.filter.entries()) {
@@ -386,15 +394,7 @@ ui.draw_frame = function () {
 ui.param_click = function(event) {
     switch (event.target.nodeName.toLowerCase()) {
     case 'button':
-        let div = document.createElement('div');
-        div.innerHTML = '<select><option default hidden>Choose node</option></select>' +
-            '<select></select><img src="icons.svg#delete" data-type="delete">';
-        ui.param.appendChild(div);
-        let svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-        let path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-        svg.appendChild(path);
-        ui.param.appendChild(svg);
-        core.eltdata.set(svg, { points: [], range: [-Infinity, Infinity, -Infinity] });
+        new Param();
         break;
     case 'img':
         let elt = event.target.parentNode.parentNode;
@@ -404,31 +404,11 @@ ui.param_click = function(event) {
             let start = core.audioctx.currentTime;
             for (let elt of ui.param.children) {
                 if (elt.nodeName.toLowerCase() != 'svg') continue;
-                let names = elt.previousElementSibling.children;
-                let data = core.elements.get(names[0].value);
-                if (!data || !names[1].value) continue;
-                let points = core.eltdata.get(elt).points;
-                let audioparam = data.node[names[1].value];
-                for (let p of points)
-                    switch (p[1]) {
-                    case 'value':
-                        audioparam.setValueAtTime(p[2] * bps, start + p[0] * bps);
-                        break;
-                    case 'linear':
-                        audioparam.linearRampToValueAtTime(p[2] * bps, start + p[0] * bps);
-                        break;
-                    case 'exponential':
-                        audioparam.exponentialRampToValueAtTime(p[2] * bps, start + p[0] * bps);
-                        break;
-                    case 'target':
-                        audioparam.setTargetAtTime(p[2] * bps, start + p[0] * bps, p[3] * bps);
-                        audioparam.setTargetAtTime(p[2] * bps, start + p[0] * bps, p[3] * bps);
-                        break;
-                    }
+                core.eltdata.get(elt).start(start, bps);
             }
             break;
         case 'stop':
-            for (let elt of param.children) {
+            for (let elt of ui.param.children) {
                 if (elt.nodeName.toLowerCase() != 'svg') continue;
                 let names = elt.previousElementSibling.children;
                 let data = core.elements.get(names[0].value);
@@ -437,16 +417,16 @@ ui.param_click = function(event) {
             }
             break;
         case 'delete':
-            param.removeChild(event.target.parentNode.nextElementSibling);
-            param.removeChild(event.target.parentNode);
+            ui.param.removeChild(event.target.parentNode.nextElementSibling);
+            ui.param.removeChild(event.target.parentNode);
             break;
         }
         break;
     case 'svg':
-        let data = core.eltdata.get(event.target);
-            let types = ['value', 'linear', 'exponential', 'target'];
+        let param = core.eltdata.get(event.target);
+        let types = ['value', 'linear', 'exponential', 'target'];
         let html = ['<div>Audio Timeline<img src="icons.svg#close" data-type="close" /></div>'];
-        for (let p of data.points) {
+        for (let p of param.points) {
             html.push('<div><input type="number" step="any" value="', p[0],
                 '" required class="small">: <select>');
             for (let t of types)
@@ -461,7 +441,7 @@ ui.param_click = function(event) {
         
         dialog.elt.innerHTML = html.join('');
         dialog.style.display = 'flex';
-        dialog.data = { type: 'param', data: data, elt: event.target };
+        dialog.data = { type: 'param', param: param };
         break;
     }
 };
@@ -486,57 +466,30 @@ ui.param_input = function(event) {
     next.innerHTML = html.join('');
 };
 
-ui.param_draw = function(elt, data) {
-    let param = elt.previousElementSibling.children;
-    let paramdata = core.elements.get(param[0].value);
-    let first = 0;
-    if (paramdata && paramdata.node[param[1].value])
-        first = paramdata.node[param[1].value].value;
-    let map = val => (elt.clientHeight - 8) * (data.range[2] - val) / (data.range[2] - data.range[1]);
-    let time = t => 100 * t;
-    let d = ['M0,', map(first)];
-    
-    for (let i in data.points) {
-        let p = data.points[i];
-        switch (p[1]) {
-        case 'value':
-            d.push('H', time(p[0]), 'V', map(p[2]));
-            break;
-        case 'linear':
-            d.push('L', time(p[0]), ',', map(p[2]));
-            break;
-        case 'exponential':
-            let prev = i == 0 ? [0, '', first] : data.points[i - 1];
-            d.push('Q', time((prev[0] + p[0]) / 2), ',', map(Math.min(prev[2], p[2])), ',',
-                time(p[0]), ',', map(p[2]));
-            break;
-        case 'target':
-            let next = i == data.points.length - 1 ? p[0] + 5 * p[3] : data.points[+i + 1][0];
-            d.push('H', time(p[0]), 'Q', time(p[0] + p[3]), ',', map(p[2]), ',',
-                time(next), ',', map(p[2]));
-            break;
-        }
-    }
-    elt.firstElementChild.setAttribute('d', d.join(''));
-};
-
-ui.menu.addEventListener('mousedown', ui.new_node);
-ui.menu.addEventListener('click', ui.click_menu);
-ui.graph.addEventListener('mousedown', ui.drag_node);
-ui.graph.addEventListener('click', ui.click_node);
-ui.graph.addEventListener('input', ui.input_node);
+ui.menu.addEventListener('mousedown', ui.node_new);
+ui.menu.addEventListener('click', ui.menu_click);
+ui.graph.addEventListener('mousedown', ui.node_drag);
+ui.graph.addEventListener('click', ui.node_click);
+ui.graph.addEventListener('input', ui.node_input);
 ui.param.addEventListener('click', ui.param_click);
 ui.param.addEventListener('focusin', ui.param_focus);
 ui.param.addEventListener('input', ui.param_input);
+window.addEventListener('beforeunload',
+    () => localStorage.setItem('webaudio_save', JSON.stringify(core.save())));
 
 (function init() {
     let step = (Math.log(20000) - Math.log(20)) / (animate.frequencies.length - 1);
     for (let i = 0; i < animate.frequencies.length; i++)
         animate.frequencies[i] = 20 * Math.exp(i * step);
-    let node = new Node('dest');
-    ui.container.appendChild(node.elt);
-    node.elt.style.marginTop = '10px';
-    node.elt.style.marginLeft = ui.graph.clientWidth - node.elt.offsetWidth - 15 + 'px';
-    ui.resize(...ui.measure());
+    let save = localStorage.getItem('webaudio_save');
+    if (save) {
+        core.load(JSON.parse(save));
+    } else {
+        let node = new Node('dest');
+        ui.container.appendChild(node.elt);
+        node.elt.style.marginTop = '10px';
+        node.elt.style.marginLeft = ui.graph.clientWidth - node.elt.offsetWidth - 15 + 'px';
+        ui.resize(...ui.measure());
+    }
     ui.draw_frame();
 })();

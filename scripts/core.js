@@ -6,6 +6,130 @@ const core = {
     elements: new Map(),
 };
 
+core.save = function() {
+    let save = { elts: {}, paths: [], params: [] };
+    for (let [id, node] of core.elements.entries()) {
+        let params = {};
+        for (let elt of node.elt.children) {
+            let param = elt.dataset.param;
+            if (!param) continue;
+            elt = elt.lastElementChild.lastElementChild;
+            params[param] = elt.type == 'checkbox' ? elt.checked : elt.value;
+        }
+        save.elts[id] = {
+            type: node.type,
+            params: params,
+            position: [node.elt.style.marginLeft, node.elt.style.marginTop],
+        }
+        
+        if (node.settings) {
+            let settings = [], elements = node.desc.settings.elements;
+            for (let i in elements) {
+                switch (elements[i].type) {
+                case 'mediastream':
+                case 'file':
+                    settings[i] = undefined;
+                    break;
+                case 'buffer':
+                    settings[i] = { type: 'none' };
+                    break;
+                default:
+                    settings[i] = node.settings[i];
+                }
+            }
+            save.elts[id].settings = settings;
+        }
+        
+        for (let path of node.paths) {
+            if (path.start.data == node) {
+                save.paths.push({
+                    start: [id, path.start.index],
+                    end: [path.end.data.elt.dataset.name, path.end.index],
+                });
+            }
+        }
+    }
+    for (let elt of param.children) {
+        if (elt.tagName.toLowerCase() != 'svg') continue;
+        let param = core.eltdata.get(elt);
+        save.params.push({
+            param: [param.div.children[0].value, param.div.children[1].value],
+            points: param.points, range: param.range,
+        });
+    }
+    return save;
+}
+
+core.load = function(save) {
+    for (let id in save.elts) {
+        let data = save.elts[id];
+        let node = new Node(data.type, id);
+        node.elt.style.marginLeft = data.position[0];
+        node.elt.style.marginTop = data.position[1];
+        
+        for (let elt of node.elt.children) {
+            let param = elt.dataset.param;
+            if (!param) continue;
+            let value = data.params[param];
+            if (param == 'type' && value == 'custom') continue;
+            elt = elt.lastElementChild.lastElementChild;
+            if (elt.type == 'checkbox')
+                elt.checked = value;
+            else
+                elt.value = value;
+            if (node.node[param] instanceof AudioParam)
+                node.node[param].setValueAtTime(value, 0);
+            else
+                node.node[param] = value;
+        }
+        
+        if (node.desc.settings) {
+            node.settings = data.settings;
+            if (!(node.node instanceof OscillatorNode) || data.params.type == 'custom')
+                node.apply();
+        }
+    }
+    
+    for (let path of save.paths) {
+        let elts = core.elements.get(path.start[0]).elt.children[1].children;
+        let start, end;
+        start = elts[0].tagName.toLowerCase() == 'img' || elts[0].className == 'multiple' ?
+            elts[2] : elts[1];
+        if (start.className == 'multiple')
+            start = start.children[path.start[1]];
+        if (typeof path.end[1] == 'string') {
+            end = core.elements.get(path.end[0]).elt
+                .querySelector('[data-param=' + path.end[1] + '] img');
+        } else {
+            end = core.elements.get(path.end[0]).elt.children[1].children[0];
+            if (end.className == 'multiple')
+                end = end.children[path.end[1]];
+        }
+        let line = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+        let clickable = line.cloneNode();
+        ui.svg.appendChild(line);
+        ui.svg.appendChild(clickable);
+        new Connection(start, end, [line, clickable]);
+    }
+
+    for (let desc of save.params) {
+        let param = new Param();
+        param.div.children[0].innerHTML = '<option>' + desc.param[0] + '</option>';
+        ui.param_input({ target: param.div.children[0] })
+        param.div.children[1].value = desc.param[1];
+        param.points = desc.points;
+        param.range = desc.range;
+        param.draw();
+    }
+    
+    ui.resize(...ui.measure());
+}
+
+core.clear = function() {
+    core.elements.forEach(node => node.delete());
+    while (ui.param.children[2]) ui.param.removeChild(ui.param.children[2]);
+}
+
 function Node(type, id) {
     this.type = type;
     this.desc = nodes[type];
@@ -44,6 +168,7 @@ function Node(type, id) {
             }
         }
     }
+    ui.container.appendChild(this.elt);
     core.eltdata.set(this.elt, this);
     core.elements.set(id, this);
 }
@@ -71,7 +196,7 @@ Node.html = function(node, desc, id) {
         html.push('<img src="icons.svg#pause" data-type="suspend" />');
     if (node instanceof AudioBufferSourceNode)
         html.push('<img src="icons.svg#none" data-type="settings" />');
-    else if (node instanceof AudioScheduledSourceNode && desc.type != 'MediaStreamSource')
+    else if (node instanceof AudioScheduledSourceNode)
         html.push('<img src="icons.svg#play" data-type="start" />');
     if (node instanceof MediaStreamAudioDestinationNode)
         html.push('<img src="icons.svg#none" data-type="" />',
@@ -108,9 +233,9 @@ Node.html = function(node, desc, id) {
 };
 
 Node.prototype.reload = function(params, running) {
-    let node = AudioContext.prototype['create' + this.desc.type].apply(core.audioctx, params);
+    let node = core.audioctx['create' + this.desc.type](...params);
     for (let param in this.desc.audioparams)
-        node[param].setValueAtTime(0, this.node[param].value);
+        node[param].setValueAtTime(this.node[param].value, 0);
     for (let param in this.desc.continuousparams)
         node[param] = this.node[param];
     for (let param in this.desc.discreteparams)
@@ -150,6 +275,18 @@ Node.prototype.apply = function(running) {
     if (args) this.reload(args, running);
 };
 
+Node.prototype.delete = function() {
+    if (this.elt.children[1].lastElementChild.dataset.type == 'stop') {
+        this.node.onended = null;
+        this.node.stop();
+    }
+    this.paths.forEach(path => path.delete());
+    if (this.desc.delete)
+        this.desc.delete(this.node);
+    ui.container.removeChild(this.elt);
+    core.elements.delete(this.elt.dataset.name);
+}
+
 function Connection(start, end, paths) {
     core.eltdata.set(paths[1], this);
     this.paths = paths;
@@ -168,7 +305,6 @@ function Connection(start, end, paths) {
     if (end.parentNode.className == 'multiple') {
         data = core.eltdata.get(end.parentNode.parentNode.parentNode);
         index = Array.prototype.indexOf.call(end.parentNode.children, end);
-        node = data.node;
     } else {
         data = core.eltdata.get(end.parentNode.parentNode);
         index = end.parentNode.dataset.param || 0;
@@ -186,7 +322,7 @@ Connection.draw = function(paths, x1, y1, x2, y2) {
 }
 
 Connection.prototype.redraw = function() {
-    Connection.draw(this.paths,
+    Connection.draw(this.paths, 
         this.start.elt.offsetLeft + this.start.elt.offsetWidth / 2 - ui.container.offsetLeft,
         this.start.elt.offsetTop + this.start.elt.offsetHeight / 2 - ui.container.offsetTop,
         this.end.elt.offsetLeft + this.end.elt.offsetWidth / 2 - ui.container.offsetLeft,
@@ -207,3 +343,73 @@ Connection.prototype.delete = function() {
     this.paths.forEach(p => ui.svg.removeChild(p));
     this.connect(true);
 }
+
+function Param() {
+    this.points = [];
+    this.range = [-Infinity, Infinity, -Infinity];
+    this.div = document.createElement('div');
+    this.div.innerHTML = '<select><option default hidden>Choose node</option></select>' +
+        '<select></select><img src="icons.svg#delete" data-type="delete">';
+    this.svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    this.path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+    this.svg.appendChild(this.path);
+    ui.param.appendChild(this.div);
+    ui.param.appendChild(this.svg);
+    core.eltdata.set(this.svg, this);
+}
+
+Param.prototype.start = function(start, bps) {
+    let node = core.elements.get(this.div.children[0].value);
+    if (!node || !this.div.children[1].value) return;
+    let audioparam = node.node[this.div.children[1].value];
+    for (let p of this.points) {
+        switch (p[1]) {
+        case 'value':
+            audioparam.setValueAtTime(p[2], start + p[0] * bps);
+            break;
+        case 'linear':
+            audioparam.linearRampToValueAtTime(p[2], start + p[0] * bps);
+            break;
+        case 'exponential':
+            audioparam.exponentialRampToValueAtTime(p[2], start + p[0] * bps);
+            break;
+        case 'target':
+            audioparam.setTargetAtTime(p[2], start + p[0] * bps, p[3] * bps);
+            break;
+        }
+    }
+}
+
+Param.prototype.draw = function() {
+    let paramdata = core.elements.get(this.div.children[0].value);
+    let first = 0;
+    if (paramdata && paramdata.node[this.div.children[1].value])
+        first = paramdata.node[this.div.children[1].value].value;
+    let map = val => (this.div.clientHeight - 8) *
+        (this.range[2] - val) /(this.range[2] - this.range[1]);
+    let time = t => 100 * t;
+    let d = ['M0,', map(first)];
+    
+    for (let i in this.points) {
+        let p = this.points[i];
+        switch (p[1]) {
+        case 'value':
+            d.push('H', time(p[0]), 'V', map(p[2]));
+            break;
+        case 'linear':
+            d.push('L', time(p[0]), ',', map(p[2]));
+            break;
+        case 'exponential':
+            let prev = i == 0 ? [0, '', first] : this.points[i - 1];
+            d.push('Q', time((prev[0] + p[0]) / 2), ',', map(Math.min(prev[2], p[2])), ',',
+                time(p[0]), ',', map(p[2]));
+            break;
+        case 'target':
+            let next = i == this.points.length - 1 ? p[0] + 5 * p[3] : this.points[+i + 1][0];
+            d.push('H', time(p[0]), 'Q', time(p[0] + p[3]), ',', map(p[2]), ',',
+                time(next), ',', map(p[2]));
+            break;
+        }
+    }
+    this.svg.firstElementChild.setAttribute('d', d.join(''));
+};

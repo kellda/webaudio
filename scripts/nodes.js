@@ -56,8 +56,8 @@ const nodes = {
         },
         settings: {
             elements: [
-                { label: 'Real / Cosine / A terms', type: 'textarea'},
-                { label: 'Imag / Sine / B terms', type: 'textarea'},
+                { label: 'Real / Cosine / A terms', type: 'textarea', initial: '0,0' },
+                { label: 'Imag / Sine / B terms', type: 'textarea', initial: '0,1' },
                 { label: 'Disable normalisation', type: 'checkbox' },
             ],
             apply: (node, settings, elt) => {
@@ -91,7 +91,7 @@ const nodes = {
         },
         settings: {
             elements: [
-                { label: 'Audio Buffer', type: 'buffer' },
+                { label: 'Audio Buffer', type: 'buffer', initial: { type: 'none' } },
             ],
             apply: (node, settings, elt) => {
                 let img = elt.children[1].lastElementChild;
@@ -116,35 +116,6 @@ const nodes = {
             },
         },
     },
-    buffer_raw: {
-        settings: {
-            elements: [
-                { label: 'Name', type: 'text' },
-                { label: 'Raw data (one line per channel)', type: 'textarea'},
-                { label: 'Sample rate', type: 'number' },
-            ],
-            make: (ctx, settings) => {
-                let channels = settings[1].split('\n');
-                let buffer = ctx.createBuffer(
-                    channels.length,
-                    channels[0].split(',').length,
-                    settings[2],
-                );
-                for (let i in channels)
-                    buffer.copyToChannel(new Float32Array(channels[i].split(',')), i);
-                return Promise.resolve(buffer);
-            },
-        },
-    },
-    buffer_file: {
-        settings: {
-            elements: [
-                { label: 'Name', type: 'text' },
-                { label: 'File', type: 'file'},
-            ],
-            make: (ctx, settings) => settings[1].arrayBuffer().then(buffer => ctx.decodeAudioData(buffer)),
-        },
-    },
     media: {
         name: 'Media Element Source',
         type: 'MediaElementSource',
@@ -152,10 +123,12 @@ const nodes = {
             elements: [
                 { label: 'Source', type: 'file' },
             ],
-            apply: (node, settings, elt) => {
+            apply: (node, settings, elt, paths) => {
+                if (!settings[0]) return;
                 URL.revokeObjectURL(node.mediaElement.src);
                 node.mediaElement.src = URL.createObjectURL(settings[0]);
                 elt.appendChild(node.mediaElement);
+                paths.forEach(path => path.redraw());
             },
         },
         create: ctx => {
@@ -183,7 +156,7 @@ const nodes = {
                     node.reload([stream])
                 });
             // Fake node as it's hard to have an empty track
-            return ctx.createConstantSource();
+            return ctx.createMediaElementSource(document.createElement('audio'));
         },
     },
     strdest: {
@@ -320,8 +293,8 @@ const nodes = {
         type: 'IIRFilter',
         settings: {
             elements: [
-                { label: 'Feedforward', type: 'textarea'},
-                { label: 'Feedback', type: 'textarea'},
+                { label: 'Feedforward', type: 'textarea', initial: '1'},
+                { label: 'Feedback', type: 'textarea', initial: '1'},
                 { label: 'Show linear magnitude response', type: 'checkbox' },
                 { label: 'Show logarithmic magnitude response', type: 'checkbox' },
                 { label: 'Show frequency phase response', type: 'checkbox' },
@@ -399,7 +372,7 @@ const nodes = {
         },
         settings: {
             elements: [
-                { label: 'Audio Buffer', type: 'buffer' },
+                { label: 'Audio Buffer', type: 'buffer', initial: { type: 'none' } },
             ],
             apply: (node, settings) => {
                 if (settings[0].type != 'new') node.buffer = settings[0].buffer;
@@ -414,7 +387,7 @@ const nodes = {
         },
         settings: {
             elements: [
-                { label: 'Curve', type: 'textarea'},
+                { label: 'Curve', type: 'textarea', initial: '0,1' },
             ],
             apply: (node, settings) => { node.curve = new Float32Array(settings[0].split(',')); }
         },

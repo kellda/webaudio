@@ -21,9 +21,10 @@ window.addEventListener('unhandledrejection', function (event) {
         <div id="menu">
             <details open>
                 <summary>File / Edit:</summary>
-                <button data-type="save" disabled>Save</button>
-                <button data-type="load" disabled>Load</button>
-                <button data-type="reset" disabled>Reset</button>
+                <button data-type="save">Save</button>
+                <button data-type="load">Load</button>
+                <button data-type="reset">Reset</button>
+                <button data-type="buf">Audio Buffers</button>
             </details>
             <details open>
                 <summary>Inputs / Outputs:</summary>
@@ -33,7 +34,6 @@ window.addEventListener('unhandledrejection', function (event) {
                 <button data-node="media">Media Element Source</button>
                 <button data-node="stream">Media Stream Source</button>
                 <button data-node="strdest">Media Stream Destination</button>
-                <button data-type="buf">Audio Buffers</button>
             </details>
             <details open>
                 <summary>Processing nodes:</summary>

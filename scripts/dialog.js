@@ -11,6 +11,32 @@ const dialog = (() => {
     };
 })();
 
+dialog.buffer_raw = {
+    elements: [
+        { label: 'Name', type: 'text' },
+        { label: 'Raw data (one line per channel)', type: 'textarea'},
+        { label: 'Sample rate', type: 'number' },
+    ],
+    make: (ctx, settings) => {
+        let channels = settings[1].split('\n');
+        let buffer = ctx.createBuffer(
+            channels.length,
+            channels[0].split(',').length,
+            settings[2],
+        );
+        for (let i in channels)
+            buffer.copyToChannel(new Float32Array(channels[i].split(',')), i);
+        return Promise.resolve(buffer);
+    },
+};
+dialog.buffer_file = {
+    elements: [
+        { label: 'Name', type: 'text' },
+        { label: 'File', type: 'file'},
+    ],
+    make: (ctx, settings) => settings[1].arrayBuffer().then(buffer => ctx.decodeAudioData(buffer)),
+};
+
 dialog.make = function(name, elements, settings) {
     let html = ['<div>', name, '<img src="icons.svg#close" data-type="close" /></div>'];
     for (let i in elements) {
@@ -80,9 +106,9 @@ dialog.submit = function(event) {
             points.push(point);
         }
         points.sort((a, b) => a[0] - b[0]);
-        dialog.data.data.points = points;
-        dialog.data.data.range = range;
-        ui.param_draw(dialog.data.elt, dialog.data.data);
+        dialog.data.param.points = points;
+        dialog.data.param.range = range;
+        dialog.data.param.draw();
         dialog.style.display = 'none';
         return;
     }
@@ -109,11 +135,11 @@ dialog.submit = function(event) {
             switch (value) {
             case 'raw':
             case 'file':
-                let desc = nodes['buffer_' + value];
-                dialog.make('New Audio Buffer', desc.settings.elements, []);
+                let desc = dialog['buffer_' + value];
+                dialog.make('New Audio Buffer', desc.elements, []);
                 nextdialog = {
                     type: 'buffer',
-                    data: { desc: desc, settings: [] },
+                    data: { desc: { settings: desc }, settings: [] },
                     node: dialog.data.data,
                 };
                 settings[i] = { buffer: null, type: 'new' };
@@ -229,9 +255,9 @@ dialog.click = function() {
         break;
     case 'raw':
     case 'file':
-        let desc = nodes['buffer_' + event.target.dataset.type];
-        dialog.make('New Audio Buffer', desc.settings.elements, []);
-        dialog.data = { type: 'buffer', data: { desc: desc, settings: [] } };
+        let desc = dialog['buffer_' + event.target.dataset.type];
+        dialog.make('New Audio Buffer', desc.elements, []);
+        dialog.data = { type: 'buffer', data: { desc: { settings: desc }, settings: [] } };
         break;
     }
 };
