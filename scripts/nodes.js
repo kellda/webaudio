@@ -1,8 +1,6 @@
 const nodes = {
     dest: {
         name: 'Destination',
-        inputs: 1,
-        outputs: 0,
         settings: {
             // Waiting for Firefox to implement these as AudioParams
             // https://bugzilla.mozilla.org/show_bug.cgi?id=1283029
@@ -17,7 +15,7 @@ const nodes = {
                 { label: 'upY', type: 'number', initial: 1 },
                 { label: 'upZ', type: 'number', initial: 0 },
             ],
-            apply: (elt, node, settings) => {
+            apply: (node, settings) => {
                 if (node.positionX) {
                     node.positionX.value = settings[0];
                     node.positionY.value = settings[1];
@@ -37,20 +35,18 @@ const nodes = {
                 }
             },
         },
-        create: ctx => ctx.listener,
+        create: ctx => ctx.destination,
     },
     cst: {
-        name: 'ConstantSource',
-        inputs: 0,
-        outputs: 1,
+        name: 'Constant Source',
+        type: 'ConstantSource',
         audioparams: {
             offset: {},
         },
     },
     osc: {
         name: 'Oscillator',
-        inputs: 0,
-        outputs: 1,
+        type: 'Oscillator',
         audioparams: {
             frequency: {},
             detune: {},
@@ -64,7 +60,7 @@ const nodes = {
                 { label: 'Imag / Sine / B terms', type: 'textarea'},
                 { label: 'Disable normalisation', type: 'checkbox' },
             ],
-            apply: (elt, node, settings) => {
+            apply: (node, settings, elt) => {
                 let real = new Float32Array(settings[0].split(','));
                 let imag = new Float32Array(settings[1].split(','));
                 settings[3] = node.context.createPeriodicWave(real, imag, { disableNormalization: settings[2] });
@@ -80,9 +76,8 @@ const nodes = {
         },
     },
     buffer: {
-        name: 'BufferSource',
-        inputs: 0,
-        outputs: 1,
+        name: 'Audio Buffer Source',
+        type: 'BufferSource',
         audioparams: {
             detune: {},
             playbackRate: {},
@@ -98,7 +93,7 @@ const nodes = {
             elements: [
                 { label: 'Audio Buffer', type: 'buffer' },
             ],
-            apply: (elt, node, settings) => {
+            apply: (node, settings, elt) => {
                 let img = elt.children[1].lastElementChild;
                 switch (settings[0].type) {
                 case 'none':
@@ -151,14 +146,13 @@ const nodes = {
         },
     },
     media: {
-        name: 'MediaElementSource',
-        inputs: 0,
-        outputs: 1,
+        name: 'Media Element Source',
+        type: 'MediaElementSource',
         settings: {
             elements: [
                 { label: 'Source', type: 'file' },
             ],
-            apply: (elt, node, settings) => {
+            apply: (node, settings, elt) => {
                 URL.revokeObjectURL(node.mediaElement.src);
                 node.mediaElement.src = URL.createObjectURL(settings[0]);
                 elt.appendChild(node.mediaElement);
@@ -172,37 +166,35 @@ const nodes = {
         delete: node => URL.revokeObjectURL(node.mediaElement.src),
     },
     stream: {
-        name: 'MediaStreamSource',
-        inputs: 0,
-        outputs: 1,
+        name: 'Media Stream Source',
+        type: 'MediaStreamSource',
         settings: {
             elements: [
                 { label: 'Source', type: 'mediastream', initial: {} },
             ],
             apply: () => {}
         },
-        create: (ctx, elt) => {
+        create: (ctx, node) => {
             // Request permission
             navigator.mediaDevices
                 .getUserMedia({ audio: true })
                 .then(stream => {
-                    eltdata.get(elt).settings[0].stream = stream;
-                    node_reload(eltdata.get(elt), [stream])
+                    node.settings[0].stream = stream;
+                    node.reload([stream])
                 });
             // Fake node as it's hard to have an empty track
-            return ctx.createGain();
+            return ctx.createConstantSource();
         },
     },
     strdest: {
-        name: 'MediaStreamDestination',
-        inputs: 1,
-        outputs: 0,
+        name: 'Media Stream Destination',
+        type: 'MediaStreamDestination',
         settings: {
             elements: [
                 { label: 'MIME type', type: 'text', optional: true },
                 { label: 'Bitrate', type: 'number', optional: true },
             ],
-            apply: (elt, node, settings) => {
+            apply: (node, settings, elt) => {
                 settings[2] && settings[2].stop();
                 
                 // Create new node
@@ -210,7 +202,7 @@ const nodes = {
                 if (settings[0])
                     params.mimeType = settings[0];
                 if (settings[1])
-                    params.audioBitsPerSecond = settings[1]
+                    params.audioBitsPerSecond = settings[1];
                 settings[2] = new MediaRecorder(node.stream, params);
 
                 // Update UI and save record
@@ -228,16 +220,14 @@ const nodes = {
     },
     gain: {
         name: 'Gain',
-        inputs: 1,
-        outputs: 1,
+        type: 'Gain',
         audioparams: {
             gain: {},
         },
     },
     delay: {
         name: 'Delay',
-        inputs: 1,
-        outputs: 1,
+        type: 'Delay',
         audioparams: {
             delayTime: {},
         },
@@ -245,24 +235,22 @@ const nodes = {
             elements: [
                 { label: 'Maximum time', type: 'number', min: 0, max: 180, initial: 1 },
             ],
-            apply: (elt, node, settings) => {
+            apply: (node, settings, elt) => {
                 elt.lastElementChild.lastElementChild.lastElementChild.max = settings[0];
                 return [settings[0]];
             },
         },
     },
     stereo: {
-        name: 'StereoPanner',
-        inputs: 1,
-        outputs: 1,
+        name: 'Stereo Panner',
+        type: 'StereoPanner',
         audioparams: {
             pan: {},
         },
     },
     panner: {
         name: 'Panner',
-        inputs: 1,
-        outputs: 1,
+        type: 'Panner',
         audioparams: {
             orientationX: {},
             orientationY: {},
@@ -285,9 +273,8 @@ const nodes = {
         },
     },
     biquad: {
-        name: 'BiquadFilter',
-        inputs: 1,
-        outputs: 1,
+        name: 'Biquad Filter',
+        type: 'BiquadFilter',
         audioparams: {
             frequency: {},
             detune: {},
@@ -303,12 +290,12 @@ const nodes = {
                 { label: 'Show logarithmic magnitude response', type: 'checkbox' },
                 { label: 'Show frequency phase response', type: 'checkbox' },
             ],
-            apply: (elt, node, settings) => {
+            apply: (node, settings, elt, paths) => {
                 // Initialize
                 if(!settings[3]) {
                     settings[3] = {
-                        magn: new Float32Array(frequencies.length),
-                        phase: new Float32Array(frequencies.length),
+                        magn: new Float32Array(animate.frequencies.length),
+                        phase: new Float32Array(animate.frequencies.length),
                     }
                     let svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
                     svg.innerHTML = '<path/>';
@@ -323,15 +310,14 @@ const nodes = {
                 for (let i = 0; i < 3; i++)
                     settings[4][i].style.display = settings[i] ? '' : 'none';
                 // Size may have changed: redraw paths
-                eltdata.get(elt).paths.forEach(paths => connection_redraw(paths, eltdata.get(paths[1])));
+                paths.forEach(path => path.redraw());
             },
         },
         delete: node => animate.filter.delete(node),
     },
     iir: {
-        name: 'IIRFilter',
-        inputs: 1,
-        outputs: 1,
+        name: 'IIR Filter',
+        type: 'IIRFilter',
         settings: {
             elements: [
                 { label: 'Feedforward', type: 'textarea'},
@@ -340,12 +326,12 @@ const nodes = {
                 { label: 'Show logarithmic magnitude response', type: 'checkbox' },
                 { label: 'Show frequency phase response', type: 'checkbox' },
             ],
-            apply: (elt, node, settings) => {
+            apply: (node, settings, elt, paths) => {
                 // Initialize
                 if(!settings[5]) {
                     settings[5] = {
-                        magn: new Float32Array(frequencies.length),
-                        phase: new Float32Array(frequencies.length),
+                        magn: new Float32Array(animate.frequencies.length),
+                        phase: new Float32Array(animate.frequencies.length),
                     }
                     let svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
                     svg.innerHTML = '<path/>';
@@ -358,7 +344,7 @@ const nodes = {
                 for (let i = 0; i < 3; i++)
                     settings[6][i].style.display = settings[i + 2] ? '' : 'none';
                 // Size may have changed: redraw paths
-                eltdata.get(elt).paths.forEach(paths => connection_redraw(paths, eltdata.get(paths[1])));
+                paths.forEach(path => path.redraw());
                 return [settings[0].split(','), settings[1].split(',')];
             },
             reload: (oldnode, newnode, settings) => {
@@ -371,9 +357,8 @@ const nodes = {
         delete: node => animate.filter.delete(node),
     },
     compr: {
-        name: 'DynamicsCompressor',
-        inputs: 1,
-        outputs: 1,
+        name: 'Dynamics Compressor',
+        type: 'DynamicsCompressor',
         audioparams: {
             threshold: {},
             knee: {},
@@ -385,7 +370,7 @@ const nodes = {
             elements: [
                 { label: 'Show reduction', type: 'checkbox' },
             ],
-            apply: (elt, node, settings) => {
+            apply: (node, settings, elt, paths) => {
                 // Initialize
                 if(!settings[1]) {
                     settings[1] = document.createElement('div');
@@ -401,15 +386,14 @@ const nodes = {
                     settings[1].style.display = 'none';
                 }
                 // Size may have changed: redraw paths
-                eltdata.get(elt).paths.forEach(paths => connection_redraw(paths, eltdata.get(paths[1])));
+                paths.forEach(path => path.redraw());
             },
         },
         delete: node => animate.compr.delete(node),
     },
     conv: {
         name: 'Convolver',
-        inputs: 1,
-        outputs: 1,
+        type: 'Convolver',
         booleanparams: {
             normalize: true,
         },
@@ -417,15 +401,14 @@ const nodes = {
             elements: [
                 { label: 'Audio Buffer', type: 'buffer' },
             ],
-            apply: (elt, node, settings) => {
+            apply: (node, settings) => {
                 if (settings[0].type != 'new') node.buffer = settings[0].buffer;
             },
         },
     },
     shaper: {
-        name: 'WaveShaper',
-        inputs: 1,
-        outputs: 1,
+        name: 'Wave Shaper',
+        type: 'WaveShaper',
         discreteparams: {
             oversample: ['none', '2x', '4x'],
         },
@@ -433,18 +416,17 @@ const nodes = {
             elements: [
                 { label: 'Curve', type: 'textarea'},
             ],
-            apply: (elt, node, settings) => { node.curve = new Float32Array(settings[0].split(',')); }
+            apply: (node, settings) => { node.curve = new Float32Array(settings[0].split(',')); }
         },
     },
     split: {
-        name: 'ChannelSplitter',
-        inputs: 1,
-        outputs: 6,
+        name: 'Channel Splitter',
+        type: 'ChannelSplitter',
         settings: {
             elements: [
                 { label: 'Outputs', type: 'number', min: 1, initial: 6 },
             ],
-            apply: (elt, node, settings) => {
+            apply: (node, settings, elt) => {
                 let list = elt.children[1].children[2];
                 if (list.childElementCount < settings[0]) {
                     let img = list.firstElementChild;
@@ -459,14 +441,13 @@ const nodes = {
         },
     },
     merger: {
-        name: 'ChannelMerger',
-        inputs: 6,
-        outputs: 1,
+        name: 'Channel Merger',
+        type: 'ChannelMerger',
         settings: {
             elements: [
                 { label: 'Inputs', type: 'number', min: 1, initial: 6 },
             ],
-            apply: (elt, node, settings) => {
+            apply: (node, settings, elt) => {
                 let list = elt.children[1].children[0];
                 if (list.childElementCount < settings[0]) {
                     let img = list.firstElementChild;
@@ -482,8 +463,7 @@ const nodes = {
     },
     analy: {
         name: 'Analyser',
-        inputs: 1,
-        outputs: 1,
+        type: 'Analyser',
         continuousparams: {
             minDecibels: { min: '', max: 0, initial: -100 },
             maxDecibels: { min: '', max: 0, initial: -30 },
@@ -497,7 +477,7 @@ const nodes = {
                 { label: 'Show frequency data', type: 'checkbox' },
                 { label: 'Show time domain data', type: 'checkbox' },
             ],
-            apply: (elt, node, settings) => {
+            apply: (node, settings, elt, paths) => {
                 // Initialize
                 if(!settings[2]) {
                     settings[2] = {
@@ -517,7 +497,7 @@ const nodes = {
                 for (let i = 0; i < 2; i++)
                     settings[3][i].style.display = settings[i] ? '' : 'none';
                 // Size may have changed: redraw paths
-                eltdata.get(elt).paths.forEach(paths => connection_redraw(paths, eltdata.get(paths[1])));
+                paths.forEach(path => path.redraw());
             },
         },
         delete: node => animate.analy.delete(node),

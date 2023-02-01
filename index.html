@@ -20,29 +20,35 @@ window.addEventListener('unhandledrejection', function (event) {
     <body>
         <div id="menu">
             <details open>
+                <summary>File / Edit:</summary>
+                <button data-type="save" disabled>Save</button>
+                <button data-type="load" disabled>Load</button>
+                <button data-type="reset" disabled>Reset</button>
+            </details>
+            <details open>
                 <summary>Inputs / Outputs:</summary>
-                <button data-type="cst">Constant Source</button>
-                <button data-type="osc">Oscillator</button>
-                <button data-type="buffer">Audio Buffer Source</button>
-                <button data-type="media">Media Element Source</button>
-                <button data-type="stream">Media Stream Source</button>
-                <button data-type="strdest">Media Stream Destination</button>
+                <button data-node="cst">Constant Source</button>
+                <button data-node="osc">Oscillator</button>
+                <button data-node="buffer">Audio Buffer Source</button>
+                <button data-node="media">Media Element Source</button>
+                <button data-node="stream">Media Stream Source</button>
+                <button data-node="strdest">Media Stream Destination</button>
                 <button data-type="buf">Audio Buffers</button>
             </details>
             <details open>
                 <summary>Processing nodes:</summary>
-                <button data-type="gain">Gain</button>
-                <button data-type="delay">Delay</button>
-                <button data-type="stereo">Stereo Panner</button>
-                <button data-type="panner">Panner</button>
-                <button data-type="biquad">Biquad Filter</button>
-                <button data-type="iir">IIR Filter</button>
-                <button data-type="compr">Dynamics Compressor</button>
-                <button data-type="conv">Convolver</button>
-                <button data-type="shaper">Wave Shaper</button>
-                <button data-type="split">Channel Splitter</button>
-                <button data-type="merger">Channel Merger</button>
-                <button data-type="analy">Analyser</button>
+                <button data-node="gain">Gain</button>
+                <button data-node="delay">Delay</button>
+                <button data-node="stereo">Stereo Panner</button>
+                <button data-node="panner">Panner</button>
+                <button data-node="biquad">Biquad Filter</button>
+                <button data-node="iir">IIR Filter</button>
+                <button data-node="compr">Dynamics Compressor</button>
+                <button data-node="conv">Convolver</button>
+                <button data-node="shaper">Wave Shaper</button>
+                <button data-node="split">Channel Splitter</button>
+                <button data-node="merger">Channel Merger</button>
+                <button data-node="analy">Analyser</button>
             </details>
         </div>
         <div id="graph">
@@ -64,7 +70,9 @@ window.addEventListener('unhandledrejection', function (event) {
             <form></form>
         </div>
         <iframe id="mdninfo"></iframe>
-        <script src="nodes.js"></script>
-        <script src="script.js"></script>
+        <script src="scripts/nodes.js"></script>
+        <script src="scripts/core.js"></script>
+        <script src="scripts/dialog.js"></script>
+        <script src="scripts/ui.js"></script>
     </body>
 </html>
